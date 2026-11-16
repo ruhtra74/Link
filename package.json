@@ -1,0 +1,13 @@
+{
+  "name": "link",
+  "private": true,
+  "description": "Application mobile de suivi d'activité pour très petites entreprises, hors ligne d'abord.",
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "mobile": "pnpm --filter @link/mobile start"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

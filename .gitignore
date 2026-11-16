@@ -1,0 +1,33 @@
+# Dépendances et builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Expo / React Native (dossiers natifs générés par `expo prebuild`)
+.expo/
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# Environnement
+.env
+.env.*
+!.env.example
+
+# LaTeX (fichiers générés)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Outils / système
+.opencode/
+.DS_Store
+.idea/
