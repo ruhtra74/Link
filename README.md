@@ -25,7 +25,7 @@ docs/             Conception (cahier des charges, modèle de données) et compte
 
 ## Prérequis
 
-- Node.js ≥ 20 et pnpm
+- Node.js ≥ 22.13 et pnpm 12
 - Un compte Expo (gratuit) pour EAS Build
 - Un téléphone Android (et plus tard un iPhone)
 
