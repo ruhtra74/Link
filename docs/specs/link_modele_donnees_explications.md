@@ -94,7 +94,7 @@ Chaque événement qui fait varier le stock d'un produit, daté. **C'est la sour
   - **LOSS** : perte, casse, vol (négatif).
   - **INVENTORY** : comptage physique. `counted_quantity` fixe la quantité à l'heure `occurred_at`. La quantité de départ, à l'activation du stock d'un produit, est un INVENTORY.
 - `occurred_at` : heure réelle de l'événement (pour une vente, l'heure de l'appareil de l'employé). C'est elle qui compte dans le calcul, pas l'heure d'arrivée.
-- `sale_line_id` : la ligne de vente à l'origine du mouvement, s'il y en a une. Garantit qu'une même vente reçue deux fois (renvoi, copie de secours) ne crée pas deux mouvements.
+- `sale_id` : la vente à l'origine du mouvement (types **SALE** et **SALE_CORRECTION** seulement). On référence la vente et l'article, pas la ligne : une correction peut remplacer les lignes d'une vente. Un seul mouvement **SALE** par vente et par article, ce qui garantit qu'une vente reçue deux fois (renvoi, copie de secours) ne crée pas deux mouvements.
 - `user_id`, `reason` : qui a saisi le mouvement et pourquoi. Les mouvements saisis à la main sont aussi tracés dans `AUDIT_LOG`.
 
 **Calcul :** stock = `counted_quantity` du dernier INVENTORY (selon `occurred_at`) + somme des `quantity_delta` dont `occurred_at` est postérieur à cet inventaire.

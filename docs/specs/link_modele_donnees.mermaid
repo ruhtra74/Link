@@ -61,7 +61,7 @@ erDiagram
     CATEGORY ||--o{ ITEM : "classe"
     ITEM ||--o| ITEM_COST : "prix d'achat"
     ITEM ||--o{ STOCK_MOVEMENT : "mouvements"
-    SALE_LINE |o--o{ STOCK_MOVEMENT : "genere"
+    SALE |o--o{ STOCK_MOVEMENT : "genere"
     USER ||--o{ STOCK_MOVEMENT : "saisit"
 
     %% ---------- ACTIVITE (VENTES) ----------
@@ -202,7 +202,7 @@ erDiagram
         integer quantity_delta "variation signee, null pour INVENTORY"
         integer counted_quantity "quantite comptee, INVENTORY seulement"
         datetime occurred_at "heure reelle de l'evenement, base du calcul"
-        string sale_line_id FK "vente a l'origine, null sinon"
+        string sale_id FK "vente a l'origine (SALE, SALE_CORRECTION), null sinon"
         string user_id FK "qui a saisi le mouvement"
         string reason
         datetime created_at "heure d'enregistrement chez le boss"
