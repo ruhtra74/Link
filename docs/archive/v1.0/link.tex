@@ -1,0 +1,263 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{linkblue}{HTML}{1F5FBF}
+\definecolor{linkgrey}{HTML}{555555}
+
+\titleformat{\section}{\Large\bfseries\color{linkblue}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{linkblue}}{\thesubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{linkgrey} Link --- Présentation de l'application}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+% Une fonctionnalité : titre en gras + description courte (4 lignes max)
+\newcommand{\fonc}[2]{\textbf{#1.} #2\par\vspace{0.2em}}
+
+\begin{document}
+	
+	%-------------------------------------------------
+	% PAGE DE TITRE
+	%-------------------------------------------------
+	\begin{titlepage}
+		\centering
+		\vspace*{3cm}
+		{\fontsize{48}{56}\selectfont\bfseries\color{linkblue} Link}\\[0.8cm]
+		{\Large Application mobile de suivi d'activité\\pour très petites entreprises}\\[5cm]
+		%{\large Fonctionne hors ligne, se synchronise sur le réseau local\\ou via internet}\\[3cm]
+		{\large Document de présentation et de description fonctionnelle}\\[0.5cm]
+		{\color{linkgrey} Version 1.0 --- Octobre 2026}
+		\vfill
+		{\color{linkgrey}\small NDEFFEU Arthur}
+	\end{titlepage}
+	
+	\tableofcontents
+	\newpage
+	
+	%-------------------------------------------------
+	\section{Introduction}
+	%-------------------------------------------------
+	\textbf{Link} est une application mobile destinée aux très petites entreprises (cinq personnes au maximum) : salon de coiffure, boutique de vêtements, atelier, petit commerce de proximité, etc. Elle permet à un responsable (le \emph{boss}) et à ses employés d'enregistrer chaque vente ou service rendu, puis d'obtenir une vue claire de l'activité.
+	
+	Link n'est pas un logiciel de gestion complet. Il n'y a ni comptabilité, ni facturation, ni gestion de paie. L'objectif est un \textbf{suivi simple, rapide et flexible} de ce que l'entreprise produit et de ce que chacun y contribue.
+	
+	Sa particularité est son fonctionnement \textbf{hors ligne}. Chaque téléphone enregistre l'activité sans connexion. Les appareils se synchronisent ensuite avec celui du boss, sur le réseau local de l'entreprise ou, en l'absence du boss, via internet.
+	
+	%-------------------------------------------------
+	\section{Contexte et objectifs}
+	%-------------------------------------------------
+	\subsection{Contexte}
+	Dans un très petit commerce, l'activité est souvent notée sur papier ou de mémoire. Les outils existants sont trop lourds, exigent une connexion permanente ou ne sont pas adaptés aux prix négociés et aux usages informels. Malgré l'omniprésence des téléphones portables, le problème de fiabilité de la connexion internet reste présent.
+	
+	\subsection{Objectifs}
+	\begin{itemize}[leftmargin=*]
+		\item Permettre d'enregistrer une vente ou un service en quelques secondes, même sans connexion.
+		\item Donner au boss une vision globale et à jour de son entreprise.
+		\item Permettre à chaque employé de suivre sa propre activité.
+		\item Garder les données cohérentes entre tous les appareils grâce à la synchronisation.
+		\item Rester très flexible : prix libres, stock optionnel, modifications possibles à tout moment.
+		\item Protéger les données (chiffrement, sauvegarde, révocation d'appareil).
+	\end{itemize}
+	
+	\subsection{Hors périmètre}
+	Comptabilité, TVA et facturation légale, reçus et factures, gestion de la paie, achats et fournisseurs, gestion détaillée du stock.
+	
+	%-------------------------------------------------
+	\section{Acteurs et droits}
+	%-------------------------------------------------
+	Link distingue deux rôles. Le modèle de données prévoit dès le départ l'ajout d'autres rôles, mais ils ne font pas partie de cette version.
+	
+	\begin{center}
+		\small
+		\begin{tabular}{p{6.2cm} c c}
+			\toprule
+			\textbf{Action} & \textbf{Boss} & \textbf{Employé} \\
+			\midrule
+			Créer et configurer l'entreprise & oui & non \\
+			Créer, désactiver, réinitialiser des comptes & oui & non \\
+			Gérer le catalogue (produits, services, prix) & oui & non \\
+			Enregistrer une vente ou un service & oui & oui \\
+			Voir l'activité de toute l'équipe & oui & non \\
+			Voir sa propre activité et ses chiffres & oui & oui \\
+			Tableau de bord global & oui & non \\
+			Modifier son profil et son mot de passe & oui & oui \\
+			Corriger une opération avant synchronisation & oui & oui (les siennes) \\
+			Corriger une opération après synchronisation & oui & non \\
+			Révoquer un appareil & oui & non \\
+			Gérer les sauvegardes & oui & non \\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	%-------------------------------------------------
+	\section{Fonctionnalités détaillées}
+	%-------------------------------------------------
+	
+	\subsection{Entreprise et comptes}
+	
+	\fonc{Création de l'entreprise}{Au premier lancement, le boss crée son compte puis son entreprise : nom, logo, couleurs, devise, type d'activité et coordonnées. Ces informations sont modifiables à tout moment.}
+	
+	\fonc{Comptes employés}{Le boss crée les comptes (nom, prénom, identifiant, mot de passe provisoire). Il peut les modifier, les désactiver ou les réactiver. Un compte n'est jamais supprimé, afin de conserver l'historique.}
+	
+	\fonc{Première connexion}{Un employé doit remplacer son mot de passe provisoire dès sa première connexion. L'accès à l'application est bloqué tant que ce changement n'est pas fait.}
+	
+	\fonc{Réinitialisation de compte}{Si un employé oublie son mot de passe, le boss génère un nouveau mot de passe provisoire. Il est transmis à l'employé, qui doit le changer à la connexion suivante.}
+	
+	\fonc{Profil personnel}{Chaque utilisateur modifie ses informations : nom, prénom, téléphone, photo, langue et mot de passe. Les changements sont transmis au boss à la synchronisation suivante.}
+	
+	\subsection{Appareils et appairage}
+	
+	\fonc{Appairage par QR code}{Pour rejoindre l'entreprise, un nouvel appareil scanne un QR code affiché sur le téléphone du boss. Ce scan est obligatoire avant toute connexion, car le compte de l'employé est créé chez le boss.}
+	
+	\fonc{Connexion multi-appareils}{Un utilisateur peut se connecter sur plusieurs appareils appairés avec ses identifiants. Il lui revient de garder ses appareils à jour par la synchronisation.}
+	
+	\fonc{Appareil partagé}{Plusieurs employés peuvent utiliser le même téléphone, chacun avec son propre compte. Chaque opération est attribuée au compte connecté.}
+	
+	\fonc{Révocation d'appareil}{Le boss peut révoquer un appareil (téléphone perdu, employé parti). À la désactivation d'un employé ou à la révocation, l'application concernée efface ses données locales à sa prochaine connexion au réseau ou synchronisation.}
+	
+	\subsection{Catalogue}
+	
+	\fonc{Produits}{Le boss enregistre ses produits : nom, catégorie, prix de référence, photo, description, référence interne. Un produit peut être archivé : il disparaît de la saisie mais reste dans l'historique.}
+	
+	\fonc{Services}{Le boss enregistre ses services : nom, catégorie, prix de référence et durée indicative. Ils s'utilisent comme les produits lors de la saisie d'une opération.}
+	
+	\fonc{Catégories}{Produits et services sont classés par catégories créées et modifiées par le boss. Elles servent à la saisie rapide et aux statistiques.}
+	
+	\fonc{Stock optionnel}{Le module de stock est désactivé par défaut. Le boss peut l'activer globalement ou produit par produit, et l'arrêter à tout moment.}
+	
+	\fonc{Stock flexible}{La vente n'est jamais bloquée. Si le stock tombe à zéro, une alerte s'affiche et le stock peut devenir négatif. Le boss peut corriger les quantités librement.}
+	
+	\subsection{Enregistrement de l'activité}
+	
+	\fonc{Saisie rapide}{Le boss et les employés enregistrent une vente ou un service en choisissant l'article, la quantité et le prix. L'écran est pensé pour une saisie en quelques secondes, avec les articles fréquents en accès direct.}
+	
+	\fonc{Prix négociable}{Le prix de référence est pré-rempli mais modifiable librement. L'écart (remise ou majoration) est conservé pour les statistiques.}
+	
+	\fonc{Panier multi-lignes}{Une même opération peut contenir plusieurs produits et services. Le total est calculé automatiquement et peut être ajusté globalement.}
+	
+	\fonc{Client facultatif}{Par défaut, l'opération est enregistrée pour un client anonyme. On peut rattacher un client (nom, téléphone) mais ce n'est jamais obligatoire.}
+	
+	\fonc{Mode de paiement et note}{Un mode de paiement (espèces, mobile money, carte\dots) peut être indiqué, ainsi qu'une note libre. La liste des modes de paiement est définie par le boss.}
+	
+	\fonc{Correction et annulation}{Une opération est annulée avec un motif ou corrigée, sans effacement silencieux. Un employé corrige ses opérations tant qu'elles ne sont pas synchronisées ; ensuite, seul le boss le peut.}
+	
+	\fonc{Historique personnel}{Chaque utilisateur consulte la liste de ses opérations, filtrable par date, article ou client. Le boss voit celles de toute l'équipe.}
+	
+	\fonc{Récapitulatif de l'employé}{L'employé voit ses ventes du jour, de la semaine et du mois, ainsi que ce qu'il a produit. Il n'accède pas aux chiffres des autres ni au tableau de bord global.}
+	
+	\subsection{Synchronisation}
+	
+	\fonc{Synchronisation sur réseau local}{Lorsque l'employé et le boss sont sur le même réseau Wi-Fi, l'employé lance la synchronisation quand il le souhaite. Elle peut aussi être proposée automatiquement à la connexion au réseau de l'entreprise.}
+	
+	\fonc{Sens de transfert}{Des employés vers le boss : opérations, annulations, modifications de profil. Du boss vers les employés : catalogue, comptes, réinitialisations, paramètres et apparence de l'entreprise.}
+	
+	\fonc{Synchronisation en ligne}{Quand le boss est absent, les employés se synchronisent via un petit serveur relais. Il sert de boîte aux lettres et ne conserve que des données chiffrées de bout en bout, que le boss récupère à sa reconnexion.}
+	
+	\fonc{Incrémentale et fiable}{Seuls les changements depuis la dernière synchronisation sont échangés. Une coupure en cours de route ne perd ni ne duplique aucune donnée.}
+	
+	\fonc{Suivi de synchronisation}{Chaque appareil affiche la date de dernière synchronisation, le nombre d'éléments en attente et le résultat. Le boss consulte un journal des synchronisations par employé.}
+	
+	\subsection{Tableau de bord du boss}
+	
+	\fonc{Chiffre d'affaires}{Chiffre d'affaires du jour, de la semaine, du mois ou d'une période choisie, avec comparaison à la période précédente. Vue répartie entre produits et services.}
+	
+	\fonc{Activité des employés}{Pour chaque employé : nombre d'opérations, chiffre généré et part qu'il représente dans la production de l'entreprise (en pourcentage).}
+	
+	\fonc{Produits et services}{Classement des articles les plus vendus et de ceux qui ne se vendent pas. Détail par catégorie.}
+	
+	\fonc{Remises et prix négociés}{Total des remises accordées, par employé et par article. Cela montre l'écart entre prix de référence et prix réellement pratiqués.}
+	
+	\fonc{Graphiques}{Évolution du chiffre d'affaires par jour, semaine ou mois, et répartition par heure pour repérer les heures de pointe. Répartition par mode de paiement.}
+	
+	\fonc{Alertes}{Stock bas ou négatif, employé n'ayant pas synchronisé depuis un certain nombre de jours, opérations annulées ou corrigées récemment.}
+	
+	\fonc{Bilan simple}{Récapitulatif de l'activité sur une période, exportable. Une saisie simple des dépenses pour estimer un résultat peut être ajoutée plus tard.}
+	
+	\subsection{Sauvegarde et restauration}
+	
+	\fonc{Sauvegarde chiffrée}{Le boss sauvegarde ses données vers son Google Drive ou iCloud, ou dans un fichier local qu'il peut conserver sur son ordinateur. La sauvegarde est chiffrée et peut être automatique.}
+	
+	\fonc{Restauration}{En cas de perte du téléphone, le boss restaure l'application sur un nouvel appareil à partir d'une sauvegarde, avec sa clé de récupération. Les appareils des employés sont ensuite ré-appairés si nécessaire.}
+	
+	\fonc{Pas de sauvegarde sur le serveur}{Le serveur relais reste le plus léger possible : il ne stocke jamais de sauvegarde et ne conserve les messages que le temps nécessaire à leur récupération.}
+	
+	\subsection{Personnalisation et paramètres}
+	
+	\fonc{Apparence de l'entreprise}{Logo, couleurs, nom et devise définis par le boss. Ces éléments sont diffusés aux employés à la synchronisation.}
+	
+	\fonc{Langues}{L'application est disponible en français et en anglais. Chaque utilisateur choisit sa langue ; d'autres langues pourront s'ajouter.}
+	
+	\fonc{Journal d'audit}{Le boss peut consulter qui a fait quoi et quand : opérations, corrections, annulations, changements de catalogue.}
+	
+	%-------------------------------------------------
+	\section{Règles de synchronisation}
+	%-------------------------------------------------
+	Le modèle est \textbf{en étoile} : le téléphone du boss est le centre. Un employé ne reçoit jamais les opérations de ses collègues, et deux employés ne se synchronisent pas entre eux. Les règles suivantes s'appliquent.
+	
+	\begin{itemize}[leftmargin=*]
+		\item \textbf{Prix et catalogue.} Une vente garde le prix et les informations en vigueur au moment où elle a été enregistrée, même si le boss modifie le catalogue ensuite.
+		\item \textbf{Heures.} L'heure retenue est celle de l'appareil de l'utilisateur. Une correction ne sera pas exigée si les horloges divergent.
+		\item \textbf{Propriété des données.} Les opérations appartiennent à l'employé qui les a créées ; le catalogue, les comptes et les paramètres appartiennent au boss, dont la version fait foi.
+		\item \textbf{Correction après synchronisation.} Une fois synchronisée, une opération ne peut plus être modifiée que par le boss.
+		\item \textbf{Absence de doublons.} Chaque élément possède un identifiant unique, ce qui évite les doublons en cas de nouvelle tentative.
+		\item \textbf{Stock.} En cas de ventes simultanées hors ligne, le stock peut devenir négatif ; une alerte est alors affichée au boss.
+		\item \textbf{Appareil révoqué.} Un appareil révoqué ou rattaché à un compte désactivé efface ses données locales dès qu'il contacte le réseau.
+	\end{itemize}
+	
+	%-------------------------------------------------
+	\section{Sécurité et confidentialité}
+	%-------------------------------------------------
+	\begin{itemize}[leftmargin=*]
+		\item Base de données locale chiffrée sur chaque téléphone.
+		\item Mots de passe stockés de manière non réversible ; mot de passe provisoire à usage unique.
+		\item Échanges de synchronisation chiffrés, y compris via le serveur relais, qui ne peut pas lire les données.
+		\item Appairage contrôlé par le boss ; révocation possible à tout moment.
+		\item Droits stricts : un employé ne voit ni la gestion des comptes, ni le tableau de bord global, ni les données de ses collègues.
+		\item Sauvegardes chiffrées, protégées par une clé de récupération détenue par le boss.
+	\end{itemize}
+	
+	%-------------------------------------------------
+	\section{Contraintes et choix techniques}
+	%-------------------------------------------------
+	\begin{itemize}[leftmargin=*]
+		\item \textbf{Plateformes :} mobile uniquement, iOS et Android, sur les téléphones personnels des utilisateurs.
+		\item \textbf{Technologie :} application React Native, avec une base de données locale SQLite chiffrée. L'hébergement du serveur relais est à définir plus tard.
+		\item \textbf{Fonctionnement :} 100\,\% hors ligne par défaut ; internet n'est utile que pour la synchronisation à distance et les sauvegardes vers le Drive.
+		\item \textbf{Données :} journal d'opérations ajoutées sans écrasement, identifiants uniques (UUID) et horodatage pour fiabiliser la synchronisation.
+		\item \textbf{Évolutivité :} chaque donnée est rattachée à un identifiant d'entreprise, pour permettre plus tard plusieurs entreprises sans refonte.
+		\item \textbf{Serveur relais :} le plus léger possible, sans stockage durable ni accès aux données en clair.
+		\item \textbf{Langues :} textes externalisés pour faciliter l'ajout de langues.
+		\item \textbf{Responsabilité de l'utilisateur :} chacun doit garder son application à jour par les synchronisations et les mises à jour des stores.
+	\end{itemize}
+	
+	%-------------------------------------------------
+	\section{Évolutions futures}
+	%-------------------------------------------------
+	\begin{itemize}[leftmargin=*]
+		\item Gestion de plusieurs entreprises par un même boss, et employés rattachés à plusieurs entreprises (déjà anticipé dans le modèle de données).
+		\item Rôle intermédiaire (adjoint) avec accès partiel au tableau de bord.
+		\item Dépenses simples et estimation du résultat.
+		\item Autres langues et personnalisations supplémentaires.
+		\item Export plus complet des bilans et statistiques.
+	\end{itemize}
+	
+
+	
+\end{document}

@@ -1,0 +1,368 @@
+%% =====================================================================
+%% LINK - Modèle de données v1.2 (SQLite chiffré, sur chaque téléphone)
+%% =====================================================================
+%% Conventions
+%% - Tous les identifiants sont des UUID (string). Chaque table porte aussi company_id.
+%% - Dates et heures en UTC (datetime).
+%% - Montants en FCFA, en nombres ENTIERS (integer), sans virgule. Quantités entières aussi.
+%% - Toutes les tables ont created_at / updated_at (omis ici sauf utilité métier).
+%% - seq : compteur de modification attribué par le téléphone du boss. Chaque table
+%%   partagée (boss -> employés) le porte. Il augmente à chaque modification d'une ligne
+%%   et sert de curseur de synchronisation (voir SYNC_STATE).
+%%
+%% Portée de chaque table
+%% - BOSS SEULEMENT (jamais envoyées aux employés) : ITEM_COST, STOCK_MOVEMENT, EXPENSE,
+%%   BACKUP, ALERT, AUDIT_LOG, ainsi que les ventes des autres employés.
+%% - PARTAGÉES (boss -> employés, filtrées selon les droits) : COMPANY, USER (le compte
+%%   du propriétaire de l'appareil uniquement), DEVICE (l'appareil lui-même), CATEGORY, ITEM (stock compris, lisible mais non modifiable),
+%%   CUSTOMER, PAYMENT_METHOD, FISCAL_YEAR (nom et état seulement, pour ranger l'historique),
+%%   et en mode conservation uniquement : les SALE / SALE_LINE saisies sur cet appareil
+%%   (avec les corrections du boss) et celles saisies par le boss au nom du propriétaire.
+%% - EMPLOYÉS -> BOSS : SALE, SALE_LINE (leurs ventes), CUSTOMER créés, profil.
+%% - LOCALES à chaque appareil, non transférées : BURST_TEMPLATE, BURST_TEMPLATE_LINE,
+%%   CHANGE_LOG, SYNC_LOG, SYNC_STATE.
+%%
+%% Contraintes à porter par la logique applicative / des index
+%% - USER.login unique par entreprise.
+%% - Un appareil = un seul utilisateur (DEVICE.user_id). Pas de téléphone partagé.
+%%   Un utilisateur peut avoir plusieurs appareils ; ils ne se synchronisent jamais entre eux.
+%% - Le compte BOSS n'est utilisable que sur le téléphone du boss.
+%% - Désactiver un USER révoque tous ses DEVICE (effacement total à leur prochaine synchro).
+%% - Profil / mot de passe modifiés sur deux appareils : la dernière version reçue par le boss l'emporte.
+%% - Un seul FISCAL_YEAR avec status = OPEN par entreprise.
+%% - Chez le boss : aucune SALE ni EXPENSE sans fiscal_year_id ; aucune synchro acceptée
+%%   sans exercice ouvert. Un exercice CLOSED est strictement en lecture seule.
+%% - SALE.fiscal_year_id est attribué par le boss à la RÉCEPTION (exercice ouvert à ce
+%%   moment). Il est null sur le téléphone de l'employé tant que la vente n'est pas reçue.
+%% - SALE_LINE.unit_cost, ITEM_COST, STOCK_MOVEMENT ne sont jamais envoyés à un employé.
+%% - Les services n'ont ni ITEM_COST ni stock (is_stock_tracked = false).
+%% - Stock : ITEM.stock_quantity est une valeur en cache chez le boss, recalculable :
+%%   dernier INVENTORY + somme des quantity_delta dont occurred_at > celui de l'inventaire.
+%%   Chez l'employé : stock affiché = stock_quantity reçue - quantités des ventes saisies sur
+%%   cet appareil et non encore confirmées (synced_at null). L'employé ne modifie jamais stock_quantity.
+%% - Une vente avec synced_at renseigné n'est plus modifiable par l'employé.
+%% - Mode DISAPPEAR : après accusé, SALE / SALE_LINE sont supprimées chez l'employé ;
+%%   seule la copie chiffrée dans CHANGE_LOG reste, jusqu'à purge_after.
+%% =====================================================================
+
+erDiagram
+
+    %% ---------- ENTREPRISE, COMPTES, APPAREILS ----------
+    COMPANY ||--o{ USER : "emploie"
+    COMPANY ||--o{ DEVICE : "appaire"
+    COMPANY ||--o{ FISCAL_YEAR : "organise en exercices"
+    COMPANY ||--o{ CATEGORY : "possede"
+    COMPANY ||--o{ ITEM : "catalogue"
+    COMPANY ||--o{ CUSTOMER : "clients"
+    COMPANY ||--o{ PAYMENT_METHOD : "modes de paiement"
+    USER ||--o{ DEVICE : "possede, un seul proprietaire par appareil"
+
+    %% ---------- CATALOGUE ET STOCK ----------
+    CATEGORY ||--o{ ITEM : "classe"
+    ITEM ||--o| ITEM_COST : "prix d'achat"
+    ITEM ||--o{ STOCK_MOVEMENT : "mouvements"
+    SALE_LINE |o--o{ STOCK_MOVEMENT : "genere"
+    USER ||--o{ STOCK_MOVEMENT : "saisit"
+
+    %% ---------- ACTIVITE (VENTES) ----------
+    FISCAL_YEAR ||--o{ SALE : "contient"
+    USER ||--o{ SALE : "employe attribue"
+    USER ||--o{ SALE : "saisi par"
+    DEVICE ||--o{ SALE : "enregistree sur"
+    CUSTOMER |o--o{ SALE : "achete"
+    PAYMENT_METHOD |o--o{ SALE : "paye avec"
+    SALE ||--|{ SALE_LINE : "lignes"
+    ITEM ||--o{ SALE_LINE : "vendu"
+
+    %% ---------- MODE RAFALE (LOCAL) ----------
+    USER ||--o{ BURST_TEMPLATE : "definit"
+    BURST_TEMPLATE ||--|{ BURST_TEMPLATE_LINE : "articles"
+    ITEM ||--o{ BURST_TEMPLATE_LINE : "modele"
+    PAYMENT_METHOD |o--o{ BURST_TEMPLATE : "par defaut"
+
+    %% ---------- DEPENSES (BOSS) ----------
+    FISCAL_YEAR ||--o{ EXPENSE : "contient"
+    USER ||--o{ EXPENSE : "saisit"
+
+    %% ---------- SYNCHRO, AUDIT, SAUVEGARDE ----------
+    DEVICE ||--o{ SYNC_LOG : "synchronise"
+    USER ||--o{ SYNC_LOG : "pour"
+    DEVICE ||--o{ CHANGE_LOG : "file d'envoi et copie de secours"
+    DEVICE ||--|| SYNC_STATE : "curseur"
+    USER ||--o{ AUDIT_LOG : "acteur"
+    COMPANY ||--o{ BACKUP : "sauvegardes"
+    COMPANY ||--o{ ALERT : "alertes"
+
+    COMPANY {
+        string id PK
+        string name
+        string logo "chemin ou blob"
+        string primary_color
+        string secondary_color
+        string currency "XOF (FCFA) fixe pour l'instant"
+        string activity_type
+        string phone
+        string address
+        enum history_retention_mode "KEEP ou DISAPPEAR, reglage global employes"
+        boolean stock_enabled "stock actif globalement"
+        integer backup_copy_retention_days "duree de la copie de secours chez les employes, 30 par defaut"
+        string boss_public_key "cle publique du boss, envoyee a l'appairage"
+        datetime settings_updated_at
+        integer seq "compteur de modification"
+        datetime created_at
+    }
+
+    USER {
+        string id PK
+        string company_id FK
+        string login "unique par entreprise"
+        string password_hash "Argon2id, non reversible"
+        string first_name
+        string last_name
+        string phone
+        string photo
+        string language "fr ou en"
+        enum role "BOSS ou EMPLOYEE"
+        boolean must_change_password "true avec mot de passe provisoire"
+        boolean is_active "jamais supprime"
+        integer seq "compteur de modification"
+        datetime created_at
+        datetime updated_at
+    }
+
+    DEVICE {
+        string id PK
+        string company_id FK
+        string user_id FK "proprietaire unique, seul compte utilisable sur l'appareil"
+        string label
+        string platform "IOS ou ANDROID"
+        string public_key "cle publique de l'appareil, pour le relais"
+        enum status "ACTIVE ou REVOKED"
+        datetime paired_at "debut de l'historique conserve sur cet appareil"
+        datetime last_login_at
+        datetime revoked_at
+        boolean wipe_pending "effacement total, copie de secours comprise, a la prochaine synchro"
+        datetime wipe_confirmed_at
+        datetime last_sync_at
+        integer seq "compteur de modification"
+    }
+
+    FISCAL_YEAR {
+        string id PK
+        string company_id FK
+        string name "exercice"
+        string description
+        enum status "OPEN ou CLOSED, CLOSED = lecture seule stricte"
+        datetime opened_at
+        datetime closed_at "null tant qu'ouvert"
+        string closed_by FK "USER"
+        integer seq "compteur de modification"
+    }
+
+    CATEGORY {
+        string id PK
+        string company_id FK
+        string name
+        enum applies_to "PRODUCT, SERVICE ou BOTH"
+        boolean is_active
+        integer seq "compteur de modification"
+    }
+
+    ITEM {
+        string id PK
+        string company_id FK
+        string category_id FK
+        enum type "PRODUCT ou SERVICE"
+        string name
+        string description
+        string photo
+        integer reference_price "prix de vente de reference, FCFA"
+        string internal_ref "produit"
+        integer duration_minutes "service, indicatif"
+        boolean is_archived "masque de la saisie, garde l'historique"
+        boolean is_favorite "acces direct a la saisie rapide"
+        boolean is_stock_tracked "produit seulement, stock suivi ou non"
+        integer stock_quantity "cache calcule depuis STOCK_MOVEMENT chez le boss, visible par tous, peut etre negatif"
+        integer stock_alert_threshold "seuil d'alerte, boss seulement, non envoye aux employes"
+        integer seq "compteur de modification"
+        datetime updated_at
+    }
+
+    ITEM_COST {
+        string item_id PK, FK
+        integer purchase_price "facultatif, produits seulement, boss seulement, FCFA"
+        datetime updated_at
+    }
+
+    STOCK_MOVEMENT {
+        string id PK
+        string company_id FK
+        string item_id FK
+        enum type "SALE, SALE_CORRECTION, ENTRY, LOSS ou INVENTORY"
+        integer quantity_delta "variation signee, null pour INVENTORY"
+        integer counted_quantity "quantite comptee, INVENTORY seulement"
+        datetime occurred_at "heure reelle de l'evenement, base du calcul"
+        string sale_line_id FK "vente a l'origine, null sinon"
+        string user_id FK "qui a saisi le mouvement"
+        string reason
+        datetime created_at "heure d'enregistrement chez le boss"
+    }
+
+    CUSTOMER {
+        string id PK
+        string company_id FK
+        string name
+        string phone
+        string created_by FK "USER"
+        integer seq "compteur de modification"
+        datetime created_at
+    }
+
+    PAYMENT_METHOD {
+        string id PK
+        string company_id FK
+        string name "especes, mobile money, carte..."
+        boolean is_active
+        integer seq "compteur de modification"
+    }
+
+    SALE {
+        string id PK
+        string company_id FK
+        string fiscal_year_id FK "attribue par le boss a la reception, null chez l'employe avant"
+        string employee_id FK "USER, auteur attribue, boss si saisie vide"
+        string entered_by_id FK "USER, qui a saisi, different si boss pour un employe"
+        string device_id FK
+        string customer_id FK "null = client anonyme"
+        string payment_method_id FK "un seul mode de paiement"
+        datetime occurred_at "heure de l'appareil : historique, stats, stock"
+        integer reference_total "somme des prix de reference"
+        integer adjustment "ajustement global du total"
+        integer total_amount "total reellement encaisse"
+        string note
+        enum entry_mode "MANUAL ou BURST"
+        enum status "ACTIVE ou CANCELLED"
+        string cancel_reason "obligatoire si CANCELLED"
+        string cancelled_by FK "USER"
+        datetime cancelled_at
+        datetime synced_at "accuse de reception du boss, null = en attente"
+        integer version "incremente a chaque correction"
+        integer seq "compteur de modification chez le boss"
+        datetime updated_at
+    }
+
+    SALE_LINE {
+        string id PK
+        string sale_id FK
+        string item_id FK
+        string item_name "copie au moment de la vente"
+        enum item_type "copie : PRODUCT ou SERVICE"
+        integer quantity
+        integer reference_price "copie du prix de reference"
+        integer unit_price "prix reellement pratique"
+        integer line_total
+        integer price_gap "ecart total, remise ou majoration"
+        integer unit_cost "cout d'achat fixe a la reception par le boss, boss seulement"
+    }
+
+    BURST_TEMPLATE {
+        string id PK
+        string user_id FK
+        string name
+        string payment_method_id FK
+        datetime updated_at
+    }
+
+    BURST_TEMPLATE_LINE {
+        string id PK
+        string template_id FK
+        string item_id FK
+        integer quantity
+        integer unit_price "prix de reference par defaut, modifiable"
+    }
+
+    EXPENSE {
+        string id PK
+        string company_id FK
+        string fiscal_year_id FK "exercice ouvert a la saisie"
+        string name
+        string description
+        integer amount "FCFA"
+        date expense_date "informative, aujourd'hui par defaut"
+        enum status "ACTIVE ou CANCELLED"
+        string cancel_reason
+        string created_by FK "USER"
+        datetime created_at
+        datetime updated_at
+    }
+
+    SYNC_LOG {
+        string id PK
+        string company_id FK
+        string device_id FK
+        string user_id FK "utilisateur concerne, chacun voit les siennes"
+        enum channel "LAN ou RELAY"
+        datetime started_at
+        datetime ended_at
+        integer items_sent
+        integer items_received
+        enum result "SUCCESS, PARTIAL ou FAILED"
+        string error_message
+    }
+
+    CHANGE_LOG {
+        string id PK
+        string company_id FK
+        string device_id FK
+        string entity_type "SALE, SALE_LINE, CUSTOMER, USER_PROFILE, ..."
+        string entity_id
+        enum operation "INSERT, UPDATE ou CANCEL"
+        integer version
+        string payload "chiffre avec la cle publique du boss, illisible pour l'employe"
+        datetime created_at
+        datetime acked_at "ecrit seulement pour les elements confirmes, null = a renvoyer"
+        datetime purge_after "acked_at + backup_copy_retention_days"
+    }
+
+    SYNC_STATE {
+        string device_id PK, FK
+        integer last_seq "employe : dernier seq recu ; boss : dernier seq attribue"
+        datetime updated_at
+    }
+
+    AUDIT_LOG {
+        string id PK
+        string company_id FK
+        string actor_id FK "USER qui a agi"
+        string on_behalf_of_id FK "USER concerne, ex. employe d'une vente saisie par le boss"
+        string device_id FK
+        string action "SALE_CREATE, SALE_EDIT, SALE_CANCEL, STOCK_ENTRY, STOCK_LOSS, STOCK_INVENTORY, EXPENSE_CREATE, YEAR_CLOSE, YEAR_OPEN..."
+        string entity_type
+        string entity_id
+        string reason
+        string before_json
+        string after_json
+        datetime created_at
+    }
+
+    BACKUP {
+        string id PK
+        string company_id FK
+        enum destination "GOOGLE_DRIVE, ICLOUD ou LOCAL_FILE"
+        boolean is_automatic
+        enum status "SUCCESS ou FAILED"
+        integer size_bytes
+        string file_reference "contient aussi la cle privee du boss, chiffree"
+        datetime created_at
+    }
+
+    ALERT {
+        string id PK
+        string company_id FK
+        enum type "LOW_STOCK, NEGATIVE_STOCK, STALE_SYNC, CANCELLED_SALE, tous pour le boss seul"
+        string entity_type
+        string entity_id
+        string message
+        datetime created_at
+        datetime read_at
+    }

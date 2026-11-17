@@ -1,0 +1,334 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{linkblue}{HTML}{1F5FBF}
+\definecolor{linkgrey}{HTML}{555555}
+
+\titleformat{\section}{\Large\bfseries\color{linkblue}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{linkblue}}{\thesubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{linkgrey} Link --- Présentation de l'application}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+% Une fonctionnalité : titre en gras + description courte
+\newcommand{\fonc}[2]{\textbf{#1.} #2\par\vspace{0.2em}}
+
+\begin{document}
+	
+	%-------------------------------------------------
+	% PAGE DE TITRE
+	%-------------------------------------------------
+	\begin{titlepage}
+		\centering
+		\vspace*{3cm}
+		{\fontsize{48}{56}\selectfont\bfseries\color{linkblue} Link}\\[0.8cm]
+		{\Large Application mobile de suivi d'activité\\pour très petites entreprises}\\[5cm]
+		{\large Document de présentation et de description fonctionnelle}\\[0.5cm]
+		{\color{linkgrey} Version 1.1 --- Octobre 2026}
+		\vfill
+		{\color{linkgrey}\small NDEFFEU Arthur}
+	\end{titlepage}
+	
+	\tableofcontents
+	\newpage
+	
+	%-------------------------------------------------
+	\section{Introduction}
+	%-------------------------------------------------
+	\textbf{Link} est une application mobile destinée aux très petites entreprises (cinq personnes au maximum) : salon de coiffure, boutique de vêtements, atelier, petit commerce de proximité, etc. Elle permet à un responsable (le \emph{boss}) et à ses employés d'enregistrer chaque vente ou service rendu, puis d'obtenir une vue claire de l'activité et un bénéfice indicatif.
+	
+	Link n'est pas un logiciel de gestion complet. Il n'y a ni comptabilité réglementaire, ni facturation, ni gestion de paie. L'objectif est un \textbf{suivi simple, rapide et flexible} de ce que l'entreprise produit, de ce que chacun y contribue et de ce qu'elle dépense.
+	
+	L'activité est organisée en \textbf{exercices} : le boss ouvre un exercice, y enregistre l'activité, puis le clôture manuellement pour en ouvrir un nouveau. Aucune opération n'est possible sans exercice ouvert.
+	
+	Sa particularité est son fonctionnement \textbf{hors ligne}. Chaque téléphone enregistre l'activité sans connexion. Les appareils se synchronisent ensuite avec celui du boss, sur le réseau local de l'entreprise ou, en l'absence du boss, via internet.
+	
+	%-------------------------------------------------
+	\section{Contexte et objectifs}
+	%-------------------------------------------------
+	\subsection{Contexte}
+	Dans un très petit commerce, l'activité est souvent notée sur papier ou de mémoire. Les outils existants sont trop lourds, exigent une connexion permanente ou ne sont pas adaptés aux prix négociés et aux usages informels. Malgré l'omniprésence des téléphones portables, le problème de fiabilité de la connexion internet reste présent.
+	
+	\subsection{Objectifs}
+	\begin{itemize}[leftmargin=*]
+		\item Permettre d'enregistrer une vente ou un service en quelques secondes, même sans connexion, et d'en enregistrer plusieurs très rapidement en cas d'affluence (mode rafale).
+		\item Donner au boss une vision globale et à jour de son entreprise, avec le chiffre d'affaires, les dépenses et un bénéfice indicatif.
+		\item Permettre à chaque employé de suivre sa propre activité, si le boss le souhaite.
+		\item Garder les données cohérentes entre tous les appareils grâce à la synchronisation.
+		\item Rester très flexible : prix libres, stock optionnel, modifications possibles à tout moment par le boss.
+		\item Organiser l'activité en exercices clairement séparés.
+		\item Protéger les données (chiffrement, sauvegarde, révocation d'appareil).
+	\end{itemize}
+	
+	\subsection{Hors périmètre}
+	Comptabilité réglementaire, TVA et facturation légale, reçus et factures, gestion de la paie, achats et fournisseurs, gestion détaillée du stock (lots, coût moyen pondéré, inventaires).
+	
+	%-------------------------------------------------
+	\section{Acteurs et droits}
+	%-------------------------------------------------
+	Link distingue deux rôles. Le modèle de données prévoit dès le départ l'ajout d'autres rôles, mais ils ne font pas partie de cette version. Le boss participe lui aussi à la production : il peut vendre comme un employé.
+	
+	\begin{center}
+		\small
+		\begin{tabular}{p{7.2cm} c c}
+			\toprule
+			\textbf{Action} & \textbf{Boss} & \textbf{Employé} \\
+			\midrule
+			Créer et configurer l'entreprise & oui & non \\
+			Créer, désactiver, réinitialiser des comptes & oui & non \\
+			Gérer le catalogue (produits, services, prix de vente) & oui & non \\
+			Voir et modifier les prix d'achat & oui & non \\
+			Voir les quantités en stock & oui & oui \\
+			Modifier le stock & oui & non \\
+			Recevoir les alertes de stock & oui & non \\
+			Créer et clôturer les exercices & oui & non \\
+			Enregistrer une vente ou un service & oui & oui \\
+			Utiliser le mode rafale & oui & oui \\
+			Enregistrer une vente au nom d'un employé & oui & non \\
+			Enregistrer et gérer les dépenses & oui & non \\
+			Voir l'activité de toute l'équipe & oui & non \\
+			Voir sa propre activité et ses chiffres & oui & selon le réglage \\
+			Tableau de bord global et bénéfice & oui & non \\
+			Consulter les exercices clos (lecture seule) & oui & selon le réglage \\
+			Choisir de conserver ou non l'historique des employés & oui & non \\
+			Modifier son profil et son mot de passe & oui & oui \\
+			Corriger une opération avant synchronisation & oui & oui (les siennes) \\
+			Corriger ou annuler une opération après synchronisation & oui & non \\
+			Révoquer un appareil & oui & non \\
+			Gérer les sauvegardes & oui & non \\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	
+	%-------------------------------------------------
+	\section{Fonctionnalités détaillées}
+	%-------------------------------------------------
+	
+	\subsection{Entreprise et comptes}
+	
+	\fonc{Création de l'entreprise}{Au premier lancement, le boss crée son compte puis son entreprise : nom, logo, couleurs, devise, type d'activité et coordonnées. Ces informations sont modifiables à tout moment. Il crée ensuite son premier exercice (voir la section Exercices).}
+	
+	\fonc{Comptes employés}{Le boss crée les comptes (nom, prénom, identifiant, mot de passe provisoire). Il peut les modifier, les désactiver ou les réactiver. Un compte n'est jamais supprimé, afin de conserver l'historique. La création des comptes, comme celle des produits et des services, ne dépend pas de l'exercice.}
+	
+	\fonc{Première connexion}{Un employé doit remplacer son mot de passe provisoire dès sa première connexion. L'accès à l'application est bloqué tant que ce changement n'est pas fait.}
+	
+	\fonc{Réinitialisation de compte}{Si un employé oublie son mot de passe, le boss génère un nouveau mot de passe provisoire. Il est transmis à l'employé, qui doit le changer à la connexion suivante.}
+	
+	\fonc{Profil personnel}{Chaque utilisateur modifie ses informations : nom, prénom, téléphone, photo, langue et mot de passe. Les changements sont transmis au boss à la synchronisation suivante.}
+	
+	\subsection{Appareils et appairage}
+	
+	\fonc{Appairage par QR code}{Pour rejoindre l'entreprise, un nouvel appareil scanne un QR code affiché sur le téléphone du boss. Ce scan est obligatoire avant toute connexion, car le compte de l'employé est créé chez le boss.}
+	
+	\fonc{Connexion multi-appareils}{Un utilisateur peut se connecter sur plusieurs appareils appairés avec ses identifiants. Il lui revient de garder ses appareils à jour par la synchronisation.}
+	
+	\fonc{Appareil partagé}{Plusieurs employés peuvent utiliser le même téléphone, chacun avec son propre compte. Chaque opération est attribuée au compte connecté.}
+	
+	\fonc{Révocation d'appareil}{Le boss peut révoquer un appareil (téléphone perdu, employé parti). À la désactivation d'un employé ou à la révocation, l'application concernée efface ses données locales à sa prochaine connexion au réseau ou synchronisation.}
+	
+	\fonc{Perte d'un téléphone employé}{L'appareil est révoqué puis ré-appairé. Aucun historique n'est restitué sur le nouvel appareil : l'employé repart avec les seules données reçues après le nouvel appairage.}
+	
+	\subsection{Exercices}
+	
+	\fonc{Notion d'exercice}{L'activité est découpée en exercices, définis librement par le boss. Un exercice a un nom et, si le boss le souhaite, une description. Il n'y a jamais qu'un seul exercice ouvert à la fois.}
+	
+	\fonc{Création du premier exercice}{Rien n'est créé automatiquement : le boss doit créer lui-même son premier exercice, une étape guidée lui rappelant que cette fonctionnalité existe. Tant qu'aucun exercice n'est ouvert, aucune vente ni dépense ne peut être enregistrée. Les autres créations (comptes, produits, services, catégories) restent possibles.}
+	
+	\fonc{Clôture et nouvel exercice}{Le boss clôture l'exercice manuellement par une seule action : « Clôturer et ouvrir un nouvel exercice », en donnant le nom (et éventuellement la description) du suivant. Avant la clôture, l'application avertit le boss si des employés ont encore des opérations non synchronisées.}
+	
+	\fonc{Données concernées}{Les ventes et les dépenses appartiennent à un exercice. Le catalogue, les comptes, les clients, les paramètres et les quantités en stock sont communs à tous les exercices et ne sont pas remis à zéro. Les chiffres d'un exercice (chiffre d'affaires, dépenses, bénéfice) ne se reportent pas sur le suivant.}
+	
+	\fonc{Exercices clos}{Un exercice clos n'est plus pris en compte dans le tableau de bord de l'exercice courant. Il est archivé, consultable en lecture seule par le boss uniquement, et n'est jamais supprimé.}
+	
+	\fonc{Rattachement d'une opération}{Une opération est rattachée à l'exercice correspondant à sa date. Une opération saisie hors ligne avant la clôture mais synchronisée après rejoint l'ancien exercice, et le boss en est alerté. C'est la seule modification possible sur un exercice clos. Elle modifie aussi le stock actuel.}
+	
+	\subsection{Catalogue}
+	
+	\fonc{Produits}{Le boss enregistre ses produits : nom, catégorie, prix de vente de référence, prix d'achat (facultatif), photo, description, référence interne. Un produit peut être archivé : il disparaît de la saisie mais reste dans l'historique.}
+	
+	\fonc{Prix d'achat}{Le prix d'achat est un champ facultatif du produit, indépendant du stock. Il sert à estimer le coût des articles vendus. Il n'est visible que du boss et n'est jamais envoyé aux employés. Un produit sans prix d'achat est compté pour un coût nul.}
+	
+	\fonc{Services}{Le boss enregistre ses services : nom, catégorie, prix de référence et durée indicative. Ils n'ont pas de prix d'achat. Ils s'utilisent comme les produits lors de la saisie d'une opération.}
+	
+	\fonc{Catégories}{Produits et services sont classés par catégories créées et modifiées par le boss. Elles servent à la saisie rapide et aux statistiques.}
+	
+	\fonc{Stock optionnel}{Le module de stock est désactivé par défaut. Le boss peut l'activer globalement ou produit par produit, et l'arrêter à tout moment. Les quantités de stock sont visibles par les employés, mais seul le boss peut les modifier.}
+	
+	\fonc{Stock flexible}{La vente n'est jamais bloquée. Si le stock tombe à zéro, une alerte s'affiche au boss uniquement (les employés ne reçoivent aucune alerte de stock) et le stock peut devenir négatif. Le boss peut corriger les quantités librement ; ces corrections sont tracées dans l'audit.}
+	
+	\subsection{Enregistrement de l'activité}
+	
+	\fonc{Saisie rapide}{Le boss et les employés enregistrent une vente ou un service en choisissant l'article, la quantité et le prix. L'écran est pensé pour une saisie en quelques secondes, avec les articles fréquents en accès direct.}
+	
+	\fonc{Prix négociable}{Le prix de référence est pré-rempli mais modifiable librement, à la hausse comme à la baisse. L'écart (remise ou majoration) est conservé pour les statistiques.}
+	
+	\fonc{Panier multi-lignes}{Une même opération peut contenir plusieurs produits et services. Le total est calculé automatiquement et peut être ajusté globalement.}
+	
+	\fonc{Client facultatif}{Par défaut, l'opération est enregistrée pour un client anonyme. On peut rattacher un client (nom, téléphone), y compris après coup, mais ce n'est jamais obligatoire.}
+	
+	\fonc{Mode de paiement et note}{Un mode de paiement (espèces, mobile money, carte\dots) peut être indiqué, ainsi qu'une note libre. La liste des modes de paiement est définie par le boss.}
+	
+	\fonc{Vente saisie par le boss pour un employé}{Le formulaire du boss comporte un champ « employé ayant fait la vente ». S'il est vide, la vente est considérée comme réalisée par le boss lui-même. L'opération est créée directement chez le boss, donc déjà synchronisée : seul le boss peut la modifier. L'historique et l'audit indiquent clairement qu'elle a été saisie par le boss pour le compte de l'employé. Elle est envoyée à l'employé uniquement si l'historique est conservé.}
+	
+	\fonc{Correction et annulation}{Une opération est annulée avec un motif ou corrigée, sans effacement silencieux. Un employé corrige ses opérations tant qu'elles ne sont pas synchronisées. Après synchronisation, il ne peut plus rien modifier, quel que soit le mode de conservation : seul le boss corrige ou annule, avec un motif tracé dans l'audit. Il peut modifier toutes les opérations, les siennes comme celles des employés.}
+	
+	\fonc{Historique personnel}{Avant synchronisation, chaque utilisateur voit toutes ses opérations. Après synchronisation, ce qu'un employé voit dépend du réglage de conservation (voir plus loin). Le boss voit celles de toute l'équipe, filtrables par date, article, client ou employé.}
+	
+	\fonc{Récapitulatif de l'employé}{L'employé voit ses ventes du jour, de la semaine et du mois à partir des opérations qu'il peut voir. Si l'historique n'est pas conservé, seules les opérations en attente de synchronisation y figurent. Il n'accède pas aux chiffres des autres ni au tableau de bord global.}
+	
+	\subsection{Mode rafale}
+	
+	Le mode rafale sert à enregistrer très vite de nombreuses ventes, par exemple lorsqu'un coiffeur enchaîne les clients.
+	
+	\fonc{Modèle de rafale}{Avant de commencer, l'utilisateur définit un modèle : un ou plusieurs articles (produits, services, ou les deux), leurs quantités, leurs prix de référence et un mode de paiement. Il peut le modifier à tout moment.}
+	
+	\fonc{Une vente par clic}{Chaque clic sur le bouton enregistre immédiatement une vente complète contenant tous les articles du modèle, sans reremplir de formulaire. Chaque vente est indépendante des autres et concerne un client, qui reste facultatif.}
+	
+	\fonc{Souplesse}{Chaque vente d'une rafale peut être personnalisée ensuite dans l'historique (prix, articles, client, note), avec les mêmes règles que les autres opérations. Un bouton « annuler la dernière vente » évite les erreurs de double clic. Chaque vente garde l'heure de son clic.}
+	
+	\fonc{Disponibilité}{Le mode rafale est offert au boss et aux employés. Le boss peut y utiliser le champ « employé ayant fait la vente ».}
+	
+	\subsection{Conservation de l'historique côté employé}
+	
+	\fonc{Réglage du boss}{Le boss choisit si les opérations enregistrées par les employés disparaissent de leur téléphone après synchronisation, ou si elles sont conservées. Le réglage est global : il s'applique à tous les employés.}
+	
+	\fonc{Mode conservation}{L'employé retrouve ses opérations depuis son appairage, rangées par exercice. Les exercices clos et les opérations synchronisées sont en lecture seule. Les corrections et annulations faites par le boss sur ses opérations lui sont renvoyées. L'employé ne voit jamais les dépenses, le tableau de bord, ni les opérations des autres.}
+	
+	\fonc{Mode disparition}{Après synchronisation, l'opération est supprimée totalement du téléphone de l'employé. Il ne voit plus rien des ventes envoyées. Les opérations saisies par le boss pour lui ne lui sont pas transmises.}
+	
+	\fonc{Prise d'effet}{Quand le boss change le réglage, il s'applique à la synchronisation suivante de chaque employé. Passer à la disparition efface tout l'historique existant sur son téléphone. Repasser à la conservation ne restitue rien : seules les nouvelles données sont conservées.}
+	
+	\fonc{Sécurité des données}{Une opération est considérée comme synchronisée uniquement après l'accusé de réception du téléphone du boss. Elle ne disparaît du téléphone de l'employé qu'à ce moment, afin qu'une coupure ou un passage par le serveur relais ne fasse rien perdre.}
+	
+	\subsection{Dépenses}
+	
+	\fonc{Dépenses supplémentaires}{Le boss enregistre les dépenses de l'entreprise (loyer, facture d'électricité, chaise cassée\dots) par un formulaire simple : nom, description, montant et date (aujourd'hui par défaut). Une dépense est rattachée à l'exercice correspondant à sa date.}
+	
+	\fonc{Gestion}{Une dépense peut être modifiée ou annulée par le boss, avec trace dans l'audit. Les dépenses sont réservées au boss, saisies uniquement sur son téléphone et jamais transmises aux employés lors des synchronisations. Elles sont déduites dans le calcul du bénéfice.}
+	
+	\subsection{Synchronisation}
+	
+	\fonc{Synchronisation sur réseau local}{Lorsque l'employé et le boss sont sur le même réseau Wi-Fi, l'employé lance la synchronisation quand il le souhaite. Elle peut aussi être proposée automatiquement à la connexion au réseau de l'entreprise.}
+	
+	\fonc{Sens de transfert}{Des employés vers le boss : opérations, modifications de profil. Du boss vers les employés : catalogue (sans les prix d'achat, avec les quantités en stock), comptes, réinitialisations, paramètres (dont le réglage de conservation) et apparence de l'entreprise, ainsi que, en mode conservation uniquement, les opérations saisies à leur nom et les corrections faites sur leurs opérations. Les dépenses, les prix d'achat et les exercices clos ne sont jamais envoyés.}
+	
+	\fonc{Synchronisation en ligne}{Quand le boss est absent, les employés se synchronisent via un petit serveur relais. Il sert de boîte aux lettres et ne conserve que des données chiffrées de bout en bout, que le boss récupère à sa reconnexion.}
+	
+	\fonc{Incrémentale et fiable}{Seuls les changements depuis la dernière synchronisation sont échangés. Une coupure en cours de route ne perd ni ne duplique aucune donnée.}
+	
+	\fonc{Suivi de synchronisation}{Chaque appareil affiche la date de dernière synchronisation, le nombre d'éléments en attente et le résultat. Chaque utilisateur consulte ainsi l'historique de ses propres synchronisations, et le boss celui de tous les employés.}
+	
+	\subsection{Tableau de bord du boss}
+	
+	Le tableau de bord porte sur l'exercice courant et se présente sous forme de totaux et de listes.
+	
+	\fonc{Chiffre d'affaires et bénéfice}{Chiffre d'affaires de l'exercice, du jour, de la semaine, du mois ou d'une période choisie, réparti entre produits et services, avec comparaison à la période précédente dans le même exercice. Le bénéfice indicatif est le chiffre d'affaires moins le coût des articles vendus et moins les dépenses.}
+	
+	\fonc{Coût des articles vendus}{Le coût est compté à la vente : prix d'achat $\times$ quantité vendue. Comme l'employé ne connaît pas le prix d'achat, c'est le téléphone du boss qui le fixe à la réception de l'opération, avec le prix d'achat en vigueur à ce moment-là.}
+	
+	\fonc{Dépenses}{Total des dépenses de l'exercice et liste détaillée.}
+	
+	\fonc{Activité des employés}{Pour chaque employé : nombre d'opérations, chiffre généré et part qu'il représente dans le chiffre d'affaires de l'entreprise (en pourcentage). Le boss compte comme un producteur.}
+	
+	\fonc{Produits et services}{Classement des articles les plus vendus et de ceux qui ne se vendent pas. Détail par catégorie.}
+	
+	\fonc{Remises et prix négociés}{Total des remises accordées, par employé et par article. Cela montre l'écart entre prix de référence et prix réellement pratiqués.}
+	
+	\fonc{Alertes}{Stock bas ou négatif, employé n'ayant pas synchronisé depuis un certain nombre de jours, opérations annulées ou corrigées récemment, opérations tardives rattachées à un exercice clos.}
+	
+	\fonc{Bilan simple}{Récapitulatif de l'activité d'un exercice ou d'une période, exportable. Il est donné à titre indicatif et n'a pas de valeur comptable.}
+	
+	\subsection{Sauvegarde et restauration}
+	
+	\fonc{Sauvegarde chiffrée}{Le boss sauvegarde ses données, exercices archivés inclus, vers son Google Drive ou iCloud, ou dans un fichier local qu'il peut conserver sur son ordinateur. La sauvegarde est chiffrée et peut être automatique.}
+	
+	\fonc{Restauration}{En cas de perte du téléphone, le boss restaure l'application sur un nouvel appareil à partir d'une sauvegarde, avec sa clé de récupération. Les appareils des employés sont ensuite ré-appairés si nécessaire.}
+	
+	\fonc{Pas de sauvegarde sur le serveur}{Le serveur relais reste le plus léger possible : il ne stocke jamais de sauvegarde et ne conserve les messages que le temps nécessaire à leur récupération.}
+	
+	\subsection{Personnalisation et paramètres}
+	
+	\fonc{Apparence de l'entreprise}{Logo, couleurs, nom et devise définis par le boss. Ces éléments sont diffusés aux employés à la synchronisation.}
+	
+	\fonc{Langues}{L'application est disponible en français et en anglais. Chaque utilisateur choisit sa langue ; d'autres langues pourront s'ajouter.}
+	
+	\fonc{Journal d'audit}{Le boss peut consulter qui a fait quoi et quand : opérations (en distinguant l'auteur de la saisie et l'employé concerné), corrections, annulations, dépenses, exercices, changements de catalogue et de réglages. L'audit est global et couvre tous les exercices.}
+	
+	%-------------------------------------------------
+	\section{Règles de synchronisation}
+	%-------------------------------------------------
+	Le modèle est \textbf{en étoile} : le téléphone du boss est le centre. Un employé ne reçoit jamais les opérations de ses collègues, et deux employés ne se synchronisent pas entre eux. Les règles suivantes s'appliquent.
+	
+	\begin{itemize}[leftmargin=*]
+		\item \textbf{Prix et catalogue.} Une vente garde le prix de vente et les informations en vigueur au moment où elle a été enregistrée, même si le boss modifie le catalogue ensuite. Le coût d'achat fait exception : il est fixé à la réception de l'opération par le boss.
+		\item \textbf{Heures.} L'heure retenue est celle de l'appareil de l'utilisateur. Une correction ne sera pas exigée si les horloges divergent.
+		\item \textbf{Propriété des données.} Les opérations appartiennent à l'employé auquel elles sont attribuées, même si le boss les a saisies à sa place ; le catalogue, les comptes, les dépenses et les paramètres appartiennent au boss, dont la version fait foi.
+		\item \textbf{Opération synchronisée.} Une opération est synchronisée à l'accusé de réception du boss. Avant cet accusé, l'employé peut la corriger et la nouvelle version est envoyée. Après, il ne peut plus rien modifier, quel que soit le mode de conservation ; seul le boss peut la corriger ou l'annuler, avec un motif.
+		\item \textbf{Retour au boss.} Les corrections du boss ne sont envoyées à l'employé qu'en mode conservation, et ne concernent que ses propres opérations.
+		\item \textbf{Réglage de conservation.} Le mode appliqué est celui en vigueur au moment de la synchronisation.
+		\item \textbf{Exercice.} Une opération est rattachée à l'exercice de sa date. Une opération tardive rejoint l'ancien exercice avec une alerte au boss.
+		\item \textbf{Absence de doublons.} Chaque élément possède un identifiant unique, ce qui évite les doublons en cas de nouvelle tentative.
+		\item \textbf{Stock.} En cas de ventes simultanées hors ligne, le stock peut devenir négatif ; une alerte est alors affichée au boss uniquement. Le stock fait foi chez le boss : chaque vente reçue d'un employé diminue le stock du boss de la quantité vendue, les employés n'envoyant jamais de quantité, seulement leurs ventes. Le boss renvoie ensuite le stock à jour à tous les employés à la synchronisation. En attendant, le téléphone de l'employé diminue localement le stock à chaque vente, pour l'affichage. Le stock n'est pas rattaché à un exercice.
+		\item \textbf{Appareil révoqué.} Un appareil révoqué ou rattaché à un compte désactivé efface ses données locales dès qu'il contacte le réseau.
+	\end{itemize}
+	
+	%-------------------------------------------------
+	\section{Sécurité et confidentialité}
+	%-------------------------------------------------
+	\begin{itemize}[leftmargin=*]
+		\item Base de données locale chiffrée sur chaque téléphone.
+		\item Mots de passe stockés de manière non réversible ; mot de passe provisoire à usage unique.
+		\item Échanges de synchronisation chiffrés, y compris via le serveur relais, qui ne peut pas lire les données.
+		\item Appairage contrôlé par le boss ; révocation possible à tout moment.
+		\item Droits stricts : un employé ne voit ni la gestion des comptes, ni le tableau de bord global, ni les dépenses, ni les prix d'achat, ni les données de ses collègues.
+		\item Dépenses, prix d'achat et exercices clos ne quittent jamais le téléphone du boss.
+		\item Sauvegardes chiffrées, protégées par une clé de récupération détenue par le boss.
+	\end{itemize}
+	
+	%-------------------------------------------------
+	\section{Contraintes et choix techniques}
+	%-------------------------------------------------
+	\begin{itemize}[leftmargin=*]
+		\item \textbf{Plateformes :} mobile uniquement, iOS et Android, sur les téléphones personnels des utilisateurs.
+		\item \textbf{Technologie :} application React Native, avec une base de données locale SQLite chiffrée. L'hébergement du serveur relais est à définir plus tard.
+		\item \textbf{Fonctionnement :} 100\,\% hors ligne par défaut ; internet n'est utile que pour la synchronisation à distance et les sauvegardes vers le Drive.
+		\item \textbf{Données :} journal d'opérations ajoutées sans écrasement, identifiants uniques (UUID) et horodatage pour fiabiliser la synchronisation. Chaque vente et dépense porte l'identifiant de son exercice.
+		\item \textbf{Évolutivité :} chaque donnée est rattachée à un identifiant d'entreprise, pour permettre plus tard plusieurs entreprises sans refonte.
+		\item \textbf{Serveur relais :} le plus léger possible, sans stockage durable ni accès aux données en clair.
+		\item \textbf{Langues :} textes externalisés pour faciliter l'ajout de langues.
+		\item \textbf{Responsabilité de l'utilisateur :} chacun doit garder son application à jour par les synchronisations et les mises à jour des stores.
+	\end{itemize}
+	
+	%-------------------------------------------------
+	\section{Évolutions futures}
+	%-------------------------------------------------
+	\begin{itemize}[leftmargin=*]
+		\item Graphiques : évolution du chiffre d'affaires, heures de pointe, répartition par mode de paiement.
+		\item Gestion de plusieurs entreprises par un même boss, et employés rattachés à plusieurs entreprises (déjà anticipé dans le modèle de données).
+		\item Rôle intermédiaire (adjoint) avec accès partiel au tableau de bord.
+		\item Historique des prix d'achat datés, pour un coût plus exact.
+		\item Restitution de l'historique à un employé après changement de téléphone.
+		\item Comparaison entre exercices.
+		\item Autres langues et personnalisations supplémentaires.
+		\item Export plus complet des bilans et statistiques.
+	\end{itemize}
+	
+\end{document}
