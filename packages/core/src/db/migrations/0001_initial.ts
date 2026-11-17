@@ -217,6 +217,8 @@ export const migration0001: Migration = {
     `CREATE INDEX sale_line_item ON sale_line (item_id)`,
 
     // Mouvements de stock : boss seulement. Source de vérité du stock.
+    // Les mouvements de vente référencent la vente et l'article (pas la ligne) : une correction
+    // peut remplacer les lignes d'une vente, le lien vers la vente reste valable.
     `CREATE TABLE stock_movement (
       id TEXT PRIMARY KEY,
       company_id TEXT NOT NULL REFERENCES company (id) ${FK},
@@ -225,7 +227,7 @@ export const migration0001: Migration = {
       quantity_delta INTEGER,
       counted_quantity INTEGER,
       occurred_at TEXT NOT NULL,
-      sale_line_id TEXT REFERENCES sale_line (id) ${FK},
+      sale_id TEXT REFERENCES sale (id) ${FK},
       user_id TEXT NOT NULL,
       reason TEXT,
       created_at TEXT NOT NULL,
@@ -233,11 +235,12 @@ export const migration0001: Migration = {
         (type = 'INVENTORY' AND counted_quantity IS NOT NULL AND quantity_delta IS NULL)
         OR (type <> 'INVENTORY' AND quantity_delta IS NOT NULL AND counted_quantity IS NULL)
       ),
-      CHECK (type NOT IN ('SALE', 'SALE_CORRECTION') OR sale_line_id IS NOT NULL)
+      CHECK ((type IN ('SALE', 'SALE_CORRECTION')) = (sale_id IS NOT NULL))
     )`,
     `CREATE INDEX stock_movement_item_date ON stock_movement (item_id, occurred_at)`,
-    // Une ligne de vente reçue deux fois (renvoi, copie de secours) ne crée qu'un seul mouvement SALE.
-    `CREATE UNIQUE INDEX stock_movement_one_sale ON stock_movement (sale_line_id) WHERE type = 'SALE'`,
+    `CREATE INDEX stock_movement_sale ON stock_movement (sale_id) WHERE sale_id IS NOT NULL`,
+    // Une vente reçue deux fois (renvoi, copie de secours) ne crée qu'un seul mouvement SALE par article.
+    `CREATE UNIQUE INDEX stock_movement_one_sale ON stock_movement (sale_id, item_id) WHERE type = 'SALE'`,
 
     // ---------- MODE RAFALE (LOCAL) ----------
     `CREATE TABLE burst_template (

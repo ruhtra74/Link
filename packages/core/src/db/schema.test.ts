@@ -144,24 +144,34 @@ describe('schéma : catalogue et stock', () => {
     await expect(insert('stock_movement', { id: 'm4', ...base, type: 'ENTRY', counted_quantity: 20 })).rejects.toThrow(/CHECK/);
   });
 
-  it("ne crée qu'un seul mouvement de vente par ligne de vente (renvoi en double sans effet)", async () => {
+  it("ne crée qu'un seul mouvement de vente par vente et par article (renvoi en double sans effet)", async () => {
     await item('p', { is_stock_tracked: 1 });
     await sale('v');
-    await line('l', 'v', 'p');
-    const mv = (id: string) =>
+    const mv = (id: string, type = 'SALE') =>
       insert('stock_movement', {
         id,
         company_id: companyId,
         item_id: 'p',
-        type: 'SALE',
+        type,
         quantity_delta: -1,
         occurred_at: NOW,
-        sale_line_id: 'l',
+        sale_id: 'v',
         user_id: bossId,
         created_at: NOW,
       });
     await mv('m1');
     await expect(mv('m2')).rejects.toThrow(/UNIQUE/);
+    // Les corrections, elles, peuvent être multiples.
+    await mv('m3', 'SALE_CORRECTION');
+    await expect(mv('m4', 'SALE_CORRECTION')).resolves.toBeDefined();
+  });
+
+  it('un mouvement de vente référence une vente ; les autres mouvements jamais', async () => {
+    await item('p', { is_stock_tracked: 1 });
+    await sale('v');
+    const base = { company_id: companyId, item_id: 'p', quantity_delta: -1, occurred_at: NOW, user_id: bossId, created_at: NOW };
+    await expect(insert('stock_movement', { id: 'a', ...base, type: 'SALE' })).rejects.toThrow(/CHECK/);
+    await expect(insert('stock_movement', { id: 'b', ...base, type: 'LOSS', sale_id: 'v' })).rejects.toThrow(/CHECK/);
   });
 });
 

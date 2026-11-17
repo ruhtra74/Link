@@ -76,3 +76,19 @@ export {
 export { createPaymentMethod, listPaymentMethods, updatePaymentMethod } from './catalog/payment-methods';
 export { createCustomer, searchCustomers, updateCustomer } from './catalog/customers';
 export { MAX_AMOUNT } from './shared/validation';
+
+// Ventes
+export * from './sales/types';
+export { computeSale, MAX_QUANTITY, type ComputedLine, type ComputedSale, type ItemSnapshot, type LineDraft } from './sales/compute';
+export {
+  cancelSale,
+  correctSale,
+  createSale,
+  finalizeSaleOnBoss,
+  getSale,
+  listSales,
+  type SaleCorrectionInput,
+  type SaleFilter,
+  type SaleInput,
+  type SaleLineInput,
+} from './sales/sales';
