@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Link",
+    "slug": "link",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ruhtra74.link",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Link utilise le réseau local pour synchroniser les téléphones de l’entreprise sans internet."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ruhtra74.link"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "link",
+    "extra": {
+      "eas": {
+        "projectId": "19add6ac-cf62-4c99-9427-8b03ac253846"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "react-native-libsodium",
+        {}
+      ]
+    ]
+  }
+}
