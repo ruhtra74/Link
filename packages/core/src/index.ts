@@ -55,3 +55,24 @@ export {
   type FiscalYear,
   type FiscalYearInput,
 } from './fiscal-years/fiscal-years';
+
+// Catalogue, modes de paiement, clients
+export * from './catalog/types';
+export { createCategory, listCategories, updateCategory } from './catalog/categories';
+export {
+  createProduct,
+  createService,
+  getItem,
+  getPurchasePrices,
+  listItems,
+  setItemArchived,
+  setPurchasePrice,
+  updateItem,
+  type ItemFilter,
+  type ItemUpdateInput,
+  type ProductInput,
+  type ServiceInput,
+} from './catalog/items';
+export { createPaymentMethod, listPaymentMethods, updatePaymentMethod } from './catalog/payment-methods';
+export { createCustomer, searchCustomers, updateCustomer } from './catalog/customers';
+export { MAX_AMOUNT } from './shared/validation';

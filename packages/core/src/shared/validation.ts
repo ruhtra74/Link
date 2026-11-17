@@ -58,6 +58,14 @@ export function integerInRange(field: string, value: number, min: number, max: n
   return value;
 }
 
+/** Plafond des montants : 1 milliard de FCFA, largement au-delà de toute vente d'une TPE. */
+export const MAX_AMOUNT = 1_000_000_000;
+
+/** Montant en FCFA : entier, positif ou nul (pas de virgule). */
+export function amount(field: string, value: number): number {
+  return integerInRange(field, value, 0, MAX_AMOUNT);
+}
+
 export function oneOf<T extends string>(field: string, value: string, allowed: readonly T[]): T {
   if (!allowed.includes(value as T)) fail(field, `Valeur invalide : ${value}.`);
   return value as T;
