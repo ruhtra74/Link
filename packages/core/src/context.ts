@@ -26,10 +26,20 @@ export interface Actor {
   deviceId: string;
 }
 
+/**
+ * Hachage des mots de passe. Dans l'app : Argon2id (3 passes, 64 Mo) via libsodium,
+ * résultat encodé avec son sel et ses paramètres. Dans les tests : une version factice rapide.
+ */
+export interface PasswordHasher {
+  hash(password: string): Promise<string>;
+  verify(password: string, hash: string): Promise<boolean>;
+}
+
 export interface CoreContext {
   db: Database;
   clock: Clock;
   ids: IdGenerator;
+  passwords: PasswordHasher;
   /** L'appareil sur lequel tourne ce cœur. Le téléphone du boss attribue les `seq`. */
   device: { id: string; isBoss: boolean };
 }

@@ -3,6 +3,8 @@
  * en message pour l'utilisateur (français, anglais).
  */
 export type ErrorCode =
+  /** Identifiant ou mot de passe incorrect. Volontairement sans préciser lequel. */
+  | 'UNAUTHENTICATED'
   /** Action interdite pour ce rôle ou dans cet état (ex. employé qui modifie une vente synchronisée). */
   | 'FORBIDDEN'
   /** Élément introuvable. */

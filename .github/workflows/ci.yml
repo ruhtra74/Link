@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Toutes les branches : la CI sert de filet de sécurité à chaque push, sans avoir à ouvrir de PR.
   push:
-    branches: [main]
   pull_request:
 
 concurrency:

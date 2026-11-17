@@ -2,7 +2,7 @@
  * Contexte de test : base SQLite en mémoire migrée, horloge contrôlable et identifiants
  * déterministes. Non exporté par `@link/core`.
  */
-import type { Clock, CoreContext } from '../context';
+import type { Clock, CoreContext, PasswordHasher } from '../context';
 import { prepareDatabase } from '../db/migrate';
 import { createIdGenerator } from '../ids';
 import { ensureSyncState } from '../sync/seq';
@@ -41,6 +41,12 @@ export function counterRandomBytes() {
   };
 }
 
+/** Hachage factice et rapide (Argon2id prendrait ~0,3 s par appel). Jamais utilisé dans l'app. */
+export const fakePasswordHasher: PasswordHasher = {
+  hash: async (password) => `fake:${password}`,
+  verify: async (password, hash) => hash === `fake:${password}`,
+};
+
 export interface TestContext extends CoreContext {
   clock: TestClock;
 }
@@ -52,5 +58,5 @@ export async function createTestContext(options: { isBoss?: boolean; deviceId?: 
   const ids = createIdGenerator(clock.now, counterRandomBytes());
   const device = { id: options.deviceId ?? ids.newId(), isBoss: options.isBoss ?? true };
   await db.transaction((tx) => ensureSyncState(tx, device.id, clock.now()));
-  return { db, clock, ids, device };
+  return { db, clock, ids, device, passwords: fakePasswordHasher };
 }
