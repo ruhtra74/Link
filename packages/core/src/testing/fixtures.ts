@@ -19,8 +19,10 @@ export async function bootstrapCompany(ctx: TestContext) {
   });
 }
 
+/** Employé dont le prénom est tiré de l'identifiant (paul → Paul), nom « Mbarga ». */
 export async function addEmployee(ctx: TestContext, boss: Actor, login = 'paul') {
-  return createEmployee(ctx, boss, { firstName: 'Paul', lastName: 'Mbarga', login, temporaryPassword: EMPLOYEE_TEMP_PASSWORD });
+  const firstName = login.charAt(0).toUpperCase() + login.slice(1);
+  return createEmployee(ctx, boss, { firstName, lastName: 'Mbarga', login, temporaryPassword: EMPLOYEE_TEMP_PASSWORD });
 }
 
 /**

@@ -41,3 +41,17 @@ export {
 export { listDevices, revokeDevice } from './accounts/devices';
 export { authenticate, type AuthResult } from './accounts/auth';
 export { PASSWORD_MIN_LENGTH } from './shared/validation';
+
+// Exercices
+export {
+  closeAndOpenFiscalYear,
+  closeFiscalYear,
+  getClosureCheck,
+  getOpenFiscalYear,
+  listFiscalYears,
+  openFiscalYear,
+  updateFiscalYear,
+  type ClosureCheckEntry,
+  type FiscalYear,
+  type FiscalYearInput,
+} from './fiscal-years/fiscal-years';
