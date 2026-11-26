@@ -89,11 +89,13 @@ Le prix d'achat d'un produit, séparé d'`ITEM` pour ne jamais partir chez les e
 Chaque événement qui fait varier le stock d'un produit, daté. **C'est la source de vérité du stock.**
 - `type` :
   - **SALE** : une vente (`quantity_delta` négatif). Créé par le boss à la réception de la vente, ou à sa saisie s'il vend lui-même.
-  - **SALE_CORRECTION** : correction ou annulation d'une vente (mouvement inverse ou différence).
+  - **SALE_CORRECTION** : correction ou annulation d'une vente (mouvement inverse ou différence), datée à l'heure où la correction est enregistrée.
   - **ENTRY** : entrée de marchandise (positif).
   - **LOSS** : perte, casse, vol (négatif).
   - **INVENTORY** : comptage physique. `counted_quantity` fixe la quantité à l'heure `occurred_at`. La quantité de départ, à l'activation du stock d'un produit, est un INVENTORY.
-- `occurred_at` : heure réelle de l'événement (pour une vente, l'heure de l'appareil de l'employé). C'est elle qui compte dans le calcul, pas l'heure d'arrivée.
+- `occurred_at` : heure réelle de l'événement. C'est elle qui compte dans le calcul, pas l'heure d'arrivée.
+  - **SALE** : heure de la vente (l'heure de l'appareil de l'employé), même si la vente arrive plus tard chez le boss. Un article ajouté par une correction sort à l'heure de la correction.
+  - **SALE_CORRECTION** : heure à laquelle le boss enregistre la correction ou l'annulation : le stock change à ce moment-là.
 - `sale_id` : la vente à l'origine du mouvement (types **SALE** et **SALE_CORRECTION** seulement). On référence la vente et l'article, pas la ligne : une correction peut remplacer les lignes d'une vente. Un seul mouvement **SALE** par vente et par article, ce qui garantit qu'une vente reçue deux fois (renvoi, copie de secours) ne crée pas deux mouvements.
 - `user_id`, `reason` : qui a saisi le mouvement et pourquoi. Les mouvements saisis à la main sont aussi tracés dans `AUDIT_LOG`.
 

@@ -312,6 +312,7 @@
 
 	\begin{itemize}[leftmargin=*]
 		\item \textbf{Mouvements qui s'additionnent} : vente ($-$quantité vendue), correction ou annulation d'une vente (mouvement inverse ou différence), entrée de marchandise, perte ou casse. Une addition donne le même résultat quel que soit l'ordre d'arrivée.
+		\item \textbf{Heure des mouvements de vente} : la vente compte à l'heure où elle a été faite. Une correction ou une annulation faite ensuite par le boss met le stock à jour à l'heure où elle est enregistrée, avec son auteur.
 		\item \textbf{Comptage} : « à telle heure, il y avait telle quantité ». C'est le seul mouvement qui fixe une valeur, et il est daté. La quantité de départ, à l'activation du stock d'un produit, est un comptage.
 		\item \textbf{Règle de calcul} : stock d'un produit = quantité du dernier comptage + somme des mouvements dont l'heure est postérieure à ce comptage. Dans l'exemple, la vente de 9~h est antérieure au comptage de 10~h : elle y est déjà incluse et n'est pas retirée à nouveau. Le stock vaut 10, quel que soit le moment de la synchronisation.
 		\item \textbf{Valeur affichée chez le boss} : la quantité calculée est gardée en mémoire dans la fiche du produit et mise à jour à chaque nouveau mouvement. Elle peut toujours être recalculée à partir des mouvements.
