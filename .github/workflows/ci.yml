@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  # Toutes les branches : la CI sert de filet de sécurité à chaque push, sans avoir à ouvrir de PR.
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Cœur métier (tests + typage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      # Seulement @link/core et ses dépendances : rapide, sans React Native.
+      - run: pnpm install --frozen-lockfile --filter @link/core...
+      - run: pnpm --filter @link/core typecheck
+      - run: pnpm --filter @link/core test
+
+  mobile:
+    name: Application mobile (typage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @link/mobile typecheck

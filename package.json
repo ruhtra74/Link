@@ -8,6 +8,7 @@
     "mobile": "pnpm --filter @link/mobile start"
   },
   "engines": {
-    "node": ">=20"
-  }
+    "node": ">=22.13"
+  },
+  "packageManager": "pnpm@12.18.0"
 }
