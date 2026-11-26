@@ -11,12 +11,19 @@ import { openNodeSqlite } from './node-sqlite';
 export interface TestClock extends Clock {
   set(iso: string): void;
   advance(ms: number): void;
+  /** Change le fuseau de l'« appareil » (minutes par rapport à UTC). */
+  setUtcOffset(minutes: number): void;
 }
 
 export function createTestClock(startIso = '2026-01-05T08:00:00.000Z'): TestClock {
   let current = Date.parse(startIso);
+  let offset = 0;
   return {
     now: () => current,
+    utcOffsetMinutes: () => offset,
+    setUtcOffset: (minutes) => {
+      offset = minutes;
+    },
     set: (iso) => {
       current = Date.parse(iso);
     },

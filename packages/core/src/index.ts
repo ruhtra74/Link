@@ -9,7 +9,7 @@ export type { Database, QueryResult, Row, SqlExecutor, SqlValue } from './db/typ
 export { prepareDatabase, schemaVersion } from './db/migrate';
 export { migrations, type Migration } from './db/migrations';
 
-export { toIso, type Actor, type Clock, type CoreContext, type PasswordHasher, type Role } from './context';
+export { localDate, toIso, type Actor, type Clock, type CoreContext, type PasswordHasher, type Role } from './context';
 export { DomainError, isDomainError, type ErrorCode } from './errors';
 export { createIdGenerator, uuidv7, UUID_V7_PATTERN, type IdGenerator, type RandomBytes } from './ids';
 export { ensureSyncState, nextSeq } from './sync/seq';
@@ -109,3 +109,15 @@ export {
   type StockMovementType,
 } from './stock/stock';
 export { listAlerts, markAlertRead, type Alert, type AlertType } from './alerts/alerts';
+
+// Dépenses
+export {
+  cancelExpense,
+  createExpense,
+  getExpense,
+  listExpenses,
+  updateExpense,
+  type Expense,
+  type ExpenseInput,
+  type ExpenseList,
+} from './expenses/expenses';

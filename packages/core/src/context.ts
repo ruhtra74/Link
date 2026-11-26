@@ -10,10 +10,20 @@ import type { IdGenerator } from './ids';
 export interface Clock {
   /** Instant courant, en millisecondes depuis l'époque Unix (UTC). */
   now(): number;
+  /**
+   * Décalage de l'heure locale de l'appareil par rapport à UTC, en minutes, à un instant donné
+   * (ex. +60 à Douala, 0 à Dakar). Dans l'app : `-new Date(ms).getTimezoneOffset()`.
+   * Sert à savoir quel jour il est pour l'utilisateur (« aujourd'hui », ventes du jour…).
+   */
+  utcOffsetMinutes(atMs: number): number;
 }
 
 /** Horodatage ISO 8601 en UTC, format de toutes les dates stockées. */
 export const toIso = (ms: number) => new Date(ms).toISOString();
+
+/** Date locale (AAAA-MM-JJ) de l'utilisateur à un instant donné. */
+export const localDate = (clock: Clock, ms: number): string =>
+  new Date(ms + clock.utcOffsetMinutes(ms) * 60_000).toISOString().slice(0, 10);
 
 export type Role = 'BOSS' | 'EMPLOYEE';
 
