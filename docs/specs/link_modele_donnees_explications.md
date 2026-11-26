@@ -161,7 +161,8 @@ Le modèle de rafale d'un utilisateur : ce qu'un clic enregistre.
 
 ### BURST_TEMPLATE_LINE 📱
 Les articles du modèle.
-- `item_id`, `quantity`, `unit_price` (prix de référence par défaut, modifiable).
+- `item_id`, `quantity`.
+- `unit_price` : facultatif. Vide = le prix de référence **actuel** du catalogue est pris au moment du clic (un changement de prix par le boss est suivi automatiquement). Renseigné = ce prix fixe est appliqué à chaque clic.
 
 > Chaque clic crée une vraie `SALE` (avec ses `SALE_LINE`) à partir du modèle. Les ventes d'une rafale ne sont pas liées entre elles.
 >
