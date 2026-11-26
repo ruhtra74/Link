@@ -20,6 +20,7 @@ import { DomainError } from '../errors';
 import { assertFiscalYearWritable, requireOpenFiscalYear } from '../fiscal-years/fiscal-years';
 import { requireBoss, requireBossDevice } from '../shared/permissions';
 import * as v from '../shared/validation';
+import { syncSaleStockMovements } from '../stock/stock';
 import { nextSeq } from '../sync/seq';
 import { computeSale, type ComputedSale, type ItemSnapshot, type LineDraft } from './compute';
 import { toSale, toSaleLine, type EntryMode, type Sale, type SaleStatus } from './types';
@@ -222,9 +223,14 @@ async function resolveEmployee(ctx: CoreContext, tx: SqlExecutor, actor: Actor, 
  * Traitement d'une vente sur le téléphone du boss, dans la transaction en cours :
  * - première fois : rattachement à l'exercice ouvert (sinon NO_OPEN_FISCAL_YEAR) et accusé de réception ;
  * - coût d'achat des lignes qui n'en ont pas encore : prix d'achat actuel, 0 sans prix d'achat ou pour un service ;
- * - nouveau seq, pour renvoyer la vente à l'employé en mode conservation.
+ * - nouveau seq, pour renvoyer la vente à l'employé en mode conservation ;
+ * - mouvements de stock mis en accord avec l'état de la vente : à l'heure de la vente la première fois,
+ *   à l'heure de l'enregistrement pour une correction ou une annulation.
  */
-export async function finalizeSaleOnBoss(ctx: CoreContext, tx: SqlExecutor, saleId: string): Promise<void> {
+/**
+ * `correctedBy` : l'auteur d'une correction ou d'une annulation (noté dans les mouvements de stock).
+ */
+export async function finalizeSaleOnBoss(ctx: CoreContext, tx: SqlExecutor, saleId: string, correctedBy?: string): Promise<void> {
   requireBossDevice(ctx);
   const { rows } = await tx.execute('SELECT company_id, fiscal_year_id, synced_at FROM sale WHERE id = ?', [saleId]);
   const sale = rows[0];
@@ -245,6 +251,8 @@ export async function finalizeSaleOnBoss(ctx: CoreContext, tx: SqlExecutor, sale
     await nextSeq(ctx, tx),
     saleId,
   ]);
+  // Première prise en compte si la vente n'avait pas encore d'accusé de réception.
+  await syncSaleStockMovements(ctx, tx, saleId, { firstReception: sale.synced_at == null, userId: correctedBy });
 }
 
 // ---------------------------------------------------------------------------
@@ -352,7 +360,7 @@ export async function correctSale(ctx: CoreContext, actor: Actor, saleId: string
 
     set('updated_at', toIso(ctx.clock.now()));
     await tx.execute(`UPDATE sale SET ${sets.join(', ')}, version = version + 1 WHERE id = ?`, [...params, saleId]);
-    if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, saleId);
+    if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, saleId, actor.userId);
   });
   return getSale(ctx, actor, saleId);
 }
@@ -369,7 +377,7 @@ export async function cancelSale(ctx: CoreContext, actor: Actor, saleId: string,
       `UPDATE sale SET status = 'CANCELLED', cancel_reason = ?, cancelled_by = ?, cancelled_at = ?, updated_at = ?, version = version + 1 WHERE id = ?`,
       [motive, actor.userId, now, now, saleId],
     );
-    if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, saleId);
+    if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, saleId, actor.userId);
   });
   return getSale(ctx, actor, saleId);
 }

@@ -92,3 +92,20 @@ export {
   type SaleInput,
   type SaleLineInput,
 } from './sales/sales';
+
+// Stock et alertes
+export {
+  computeStock,
+  disableStockTracking,
+  enableStockTracking,
+  getDisplayedStock,
+  listStockMovements,
+  MAX_STOCK_QUANTITY,
+  recordInventory,
+  recordStockEntry,
+  recordStockLoss,
+  setStockAlertThreshold,
+  type StockMovement,
+  type StockMovementType,
+} from './stock/stock';
+export { listAlerts, markAlertRead, type Alert, type AlertType } from './alerts/alerts';
