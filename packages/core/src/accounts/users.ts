@@ -2,6 +2,7 @@
  * Comptes : employés gérés par le boss, profil et mot de passe de chacun.
  * Voir docs/specs, « Entreprise et comptes ».
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -65,6 +66,7 @@ export async function createEmployee(ctx: CoreContext, actor: Actor, input: Empl
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'EMPLOYEE', 1, 1, ?, ?, ?)`,
       [id, actor.companyId, login, passwordHash, firstName, lastName, v.optionalText('phone', input.phone, 30), language, await nextSeq(ctx, tx), now, now],
     );
+    await recordAudit(ctx, tx, actor, { action: 'USER_CREATE', entityType: 'user', entityId: id, onBehalfOf: id, after: await snapshot(tx, 'user', id) });
   });
   return getUserById(ctx, id);
 }
@@ -91,7 +93,9 @@ export async function updateEmployee(ctx: CoreContext, actor: Actor, userId: str
       updated_at: toIso(ctx.clock.now()),
       seq: await seqOrKeep(ctx, tx),
     });
-    await tx.execute(`UPDATE user SET ${set.sql} WHERE id = ?`, [...set.params, userId]);
+    await audited(ctx, tx, actor, { action: 'USER_UPDATE', entityType: 'user', entityId: userId, onBehalfOf: userId }, () =>
+      tx.execute(`UPDATE user SET ${set.sql} WHERE id = ?`, [...set.params, userId]),
+    );
   });
   return getUserById(ctx, userId);
 }
@@ -105,13 +109,11 @@ export async function setEmployeeActive(ctx: CoreContext, actor: Actor, userId: 
   requireBoss(actor);
   await ctx.db.transaction(async (tx) => {
     await findEmployee(tx, actor.companyId, userId);
-    await tx.execute(`UPDATE user SET is_active = ?, updated_at = ?, seq = ? WHERE id = ?`, [
-      active ? 1 : 0,
-      toIso(ctx.clock.now()),
-      await nextSeq(ctx, tx),
-      userId,
-    ]);
-    if (!active) await revokeDevicesOfUser(ctx, tx, userId);
+    const action = active ? 'USER_REACTIVATE' : 'USER_DEACTIVATE';
+    await audited(ctx, tx, actor, { action, entityType: 'user', entityId: userId, onBehalfOf: userId }, async () =>
+      tx.execute(`UPDATE user SET is_active = ?, updated_at = ?, seq = ? WHERE id = ?`, [active ? 1 : 0, toIso(ctx.clock.now()), await nextSeq(ctx, tx), userId]),
+    );
+    if (!active) await revokeDevicesOfUser(ctx, tx, userId, actor);
   });
   return getUserById(ctx, userId);
 }
@@ -122,12 +124,15 @@ export async function resetEmployeePassword(ctx: CoreContext, actor: Actor, user
   const hash = await ctx.passwords.hash(v.password('temporaryPassword', temporaryPassword));
   await ctx.db.transaction(async (tx) => {
     await findEmployee(tx, actor.companyId, userId);
-    await tx.execute(`UPDATE user SET password_hash = ?, must_change_password = 1, updated_at = ?, seq = ? WHERE id = ?`, [
-      hash,
-      toIso(ctx.clock.now()),
-      await nextSeq(ctx, tx),
-      userId,
-    ]);
+    // Le journal garde l'événement, jamais le mot de passe ni son empreinte.
+    await audited(ctx, tx, actor, { action: 'USER_PASSWORD_RESET', entityType: 'user', entityId: userId, onBehalfOf: userId }, async () =>
+      tx.execute(`UPDATE user SET password_hash = ?, must_change_password = 1, updated_at = ?, seq = ? WHERE id = ?`, [
+        hash,
+        toIso(ctx.clock.now()),
+        await nextSeq(ctx, tx),
+        userId,
+      ]),
+    );
   });
   return getUserById(ctx, userId);
 }
@@ -168,7 +173,9 @@ export async function updateOwnProfile(ctx: CoreContext, actor: Actor, input: Pr
       updated_at: toIso(ctx.clock.now()),
       seq: await seqOrKeep(ctx, tx),
     });
-    await tx.execute(`UPDATE user SET ${set.sql} WHERE id = ?`, [...set.params, actor.userId]);
+    await audited(ctx, tx, actor, { action: 'PROFILE_UPDATE', entityType: 'user', entityId: actor.userId }, () =>
+      tx.execute(`UPDATE user SET ${set.sql} WHERE id = ?`, [...set.params, actor.userId]),
+    );
   });
   return getMe(ctx, actor);
 }
@@ -194,6 +201,7 @@ export async function changePassword(
   await ctx.db.transaction(async (tx) => {
     const set = setClause({ password_hash: hash, must_change_password: 0, updated_at: toIso(ctx.clock.now()), seq: await seqOrKeep(ctx, tx) });
     await tx.execute(`UPDATE user SET ${set.sql} WHERE id = ?`, [...set.params, actor.userId]);
+    await recordAudit(ctx, tx, actor, { action: 'PASSWORD_CHANGE', entityType: 'user', entityId: actor.userId });
   });
   return getMe(ctx, actor);
 }

@@ -8,6 +8,7 @@
  *   (ou la saisit) ; sa date ne compte pas.
  * - Un exercice clos est strictement en lecture seule et n'est jamais supprimé.
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { Row, SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -93,17 +94,20 @@ async function insertOpenYear(ctx: CoreContext, tx: SqlExecutor, actor: Actor, i
     `INSERT INTO fiscal_year (id, company_id, name, description, status, opened_at, seq) VALUES (?, ?, ?, ?, 'OPEN', ?, ?)`,
     [id, actor.companyId, v.requiredText('name', input.name), v.optionalText('description', input.description, 500), now, await nextSeq(ctx, tx)],
   );
+  await recordAudit(ctx, tx, actor, { action: 'YEAR_OPEN', entityType: 'fiscal_year', entityId: id, after: await snapshot(tx, 'fiscal_year', id) });
   return id;
 }
 
 async function closeOpenYear(ctx: CoreContext, tx: SqlExecutor, actor: Actor, now: string): Promise<string> {
   const open = await requireOpenFiscalYear(tx, actor.companyId);
-  await tx.execute(`UPDATE fiscal_year SET status = 'CLOSED', closed_at = ?, closed_by = ?, seq = ? WHERE id = ?`, [
-    now,
-    actor.userId,
-    await nextSeq(ctx, tx),
-    open.id,
-  ]);
+  await audited(ctx, tx, actor, { action: 'YEAR_CLOSE', entityType: 'fiscal_year', entityId: open.id }, async () =>
+    tx.execute(`UPDATE fiscal_year SET status = 'CLOSED', closed_at = ?, closed_by = ?, seq = ? WHERE id = ?`, [
+      now,
+      actor.userId,
+      await nextSeq(ctx, tx),
+      open.id,
+    ]),
+  );
   return open.id;
 }
 
@@ -162,15 +166,17 @@ export async function updateFiscalYear(
     const { rows } = await tx.execute('SELECT company_id FROM fiscal_year WHERE id = ?', [fiscalYearId]);
     if (!rows[0] || rows[0].company_id !== actor.companyId) throw new DomainError('NOT_FOUND', 'Exercice introuvable.');
     await assertFiscalYearWritable(tx, fiscalYearId);
-    await tx.execute(
-      `UPDATE fiscal_year SET name = COALESCE(?, name), description = CASE WHEN ? THEN ? ELSE description END, seq = ? WHERE id = ?`,
-      [
-        input.name !== undefined ? v.requiredText('name', input.name) : null,
-        input.description !== undefined ? 1 : 0,
-        input.description !== undefined ? v.optionalText('description', input.description, 500) : null,
-        await nextSeq(ctx, tx),
-        fiscalYearId,
-      ],
+    await audited(ctx, tx, actor, { action: 'YEAR_UPDATE', entityType: 'fiscal_year', entityId: fiscalYearId }, async () =>
+      tx.execute(
+        `UPDATE fiscal_year SET name = COALESCE(?, name), description = CASE WHEN ? THEN ? ELSE description END, seq = ? WHERE id = ?`,
+        [
+          input.name !== undefined ? v.requiredText('name', input.name) : null,
+          input.description !== undefined ? 1 : 0,
+          input.description !== undefined ? v.optionalText('description', input.description, 500) : null,
+          await nextSeq(ctx, tx),
+          fiscalYearId,
+        ],
+      ),
     );
   });
   return getById(ctx, fiscalYearId);

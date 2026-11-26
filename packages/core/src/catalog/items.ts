@@ -7,6 +7,7 @@
  * - Le prix d'achat (produits seulement, facultatif) est dans ITEM_COST, réservé au boss.
  * - Le suivi de stock s'active dans le module stock (il crée un premier comptage).
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { SqlExecutor, SqlValue } from '../db/types';
 import { DomainError } from '../errors';
@@ -87,6 +88,7 @@ async function insertItem(ctx: CoreContext, actor: Actor, type: ItemType, input:
         now,
       ]);
     }
+    await recordAudit(ctx, tx, actor, { action: 'ITEM_CREATE', entityType: 'item', entityId: id, after: await snapshot(tx, 'item', id) });
   });
   return findItem(ctx.db, actor.companyId, id);
 }
@@ -123,7 +125,9 @@ export async function updateItem(ctx: CoreContext, actor: Actor, itemId: string,
       updated_at: toIso(ctx.clock.now()),
       seq: await nextSeq(ctx, tx),
     });
-    await tx.execute(`UPDATE item SET ${set.sql} WHERE id = ?`, [...set.params, itemId]);
+    await audited(ctx, tx, actor, { action: 'ITEM_UPDATE', entityType: 'item', entityId: itemId }, () =>
+      tx.execute(`UPDATE item SET ${set.sql} WHERE id = ?`, [...set.params, itemId]),
+    );
   });
   return findItem(ctx.db, actor.companyId, itemId);
 }
@@ -134,12 +138,9 @@ export async function setItemArchived(ctx: CoreContext, actor: Actor, itemId: st
   requireBossDevice(ctx);
   await ctx.db.transaction(async (tx) => {
     await findItem(tx, actor.companyId, itemId);
-    await tx.execute('UPDATE item SET is_archived = ?, updated_at = ?, seq = ? WHERE id = ?', [
-      toDb(archived),
-      toIso(ctx.clock.now()),
-      await nextSeq(ctx, tx),
-      itemId,
-    ]);
+    await audited(ctx, tx, actor, { action: archived ? 'ITEM_ARCHIVE' : 'ITEM_UNARCHIVE', entityType: 'item', entityId: itemId }, async () =>
+      tx.execute('UPDATE item SET is_archived = ?, updated_at = ?, seq = ? WHERE id = ?', [toDb(archived), toIso(ctx.clock.now()), await nextSeq(ctx, tx), itemId]),
+    );
   });
   return findItem(ctx.db, actor.companyId, itemId);
 }
@@ -198,15 +199,17 @@ export async function setPurchasePrice(ctx: CoreContext, actor: Actor, itemId: s
     const item = await findItem(tx, actor.companyId, itemId);
     if (item.type !== 'PRODUCT') throw new DomainError('VALIDATION', "Un service n'a pas de prix d'achat.", { field: 'purchasePrice' });
     const now = toIso(ctx.clock.now());
-    if (purchasePrice == null) {
-      await tx.execute('DELETE FROM item_cost WHERE item_id = ?', [itemId]);
-    } else {
-      await tx.execute(
-        `INSERT INTO item_cost (item_id, purchase_price, updated_at) VALUES (?, ?, ?)
-         ON CONFLICT (item_id) DO UPDATE SET purchase_price = excluded.purchase_price, updated_at = excluded.updated_at`,
-        [itemId, v.amount('purchasePrice', purchasePrice), now],
-      );
-    }
+    await audited(ctx, tx, actor, { action: 'ITEM_COST_UPDATE', entityType: 'item_cost', entityId: itemId }, async () => {
+      if (purchasePrice == null) {
+        await tx.execute('DELETE FROM item_cost WHERE item_id = ?', [itemId]);
+      } else {
+        await tx.execute(
+          `INSERT INTO item_cost (item_id, purchase_price, updated_at) VALUES (?, ?, ?)
+           ON CONFLICT (item_id) DO UPDATE SET purchase_price = excluded.purchase_price, updated_at = excluded.updated_at`,
+          [itemId, v.amount('purchasePrice', purchasePrice), now],
+        );
+      }
+    });
   });
 }
 

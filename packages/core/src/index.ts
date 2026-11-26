@@ -144,6 +144,16 @@ export {
   type RevenueSummary,
 } from './analytics/dashboard';
 
+// Journal d'audit
+export {
+  listAuditLog,
+  type AuditAction,
+  type AuditedEntity,
+  type AuditEntry,
+  type AuditFilter,
+  type Snapshot,
+} from './audit/audit';
+
 // Dépenses
 export {
   cancelExpense,

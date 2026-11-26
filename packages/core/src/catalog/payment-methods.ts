@@ -2,6 +2,7 @@
  * Modes de paiement (espèces, mobile money, carte…), liste définie par le boss.
  * Un mode n'est jamais supprimé : on le désactive (les ventes passées le gardent).
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -31,6 +32,7 @@ export async function createPaymentMethod(ctx: CoreContext, actor: Actor, input:
       now,
       now,
     ]);
+    await recordAudit(ctx, tx, actor, { action: 'PAYMENT_METHOD_CREATE', entityType: 'payment_method', entityId: id, after: await snapshot(tx, 'payment_method', id) });
   });
   return findPaymentMethod(ctx.db, actor.companyId, id);
 }
@@ -51,7 +53,9 @@ export async function updatePaymentMethod(
       updated_at: toIso(ctx.clock.now()),
       seq: await nextSeq(ctx, tx),
     });
-    await tx.execute(`UPDATE payment_method SET ${set.sql} WHERE id = ?`, [...set.params, id]);
+    await audited(ctx, tx, actor, { action: 'PAYMENT_METHOD_UPDATE', entityType: 'payment_method', entityId: id }, () =>
+      tx.execute(`UPDATE payment_method SET ${set.sql} WHERE id = ?`, [...set.params, id]),
+    );
   });
   return findPaymentMethod(ctx.db, actor.companyId, id);
 }

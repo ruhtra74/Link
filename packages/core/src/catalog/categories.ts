@@ -2,6 +2,7 @@
  * Catégories de produits et de services, gérées par le boss. Elles servent à la saisie
  * rapide et aux statistiques. Une catégorie n'est jamais supprimée : on la désactive.
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -37,6 +38,7 @@ export async function createCategory(ctx: CoreContext, actor: Actor, input: { na
       `INSERT INTO category (id, company_id, name, applies_to, seq, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, actor.companyId, v.requiredText('name', input.name, 60), v.oneOf('appliesTo', input.appliesTo, SCOPES), await nextSeq(ctx, tx), now, now],
     );
+    await recordAudit(ctx, tx, actor, { action: 'CATEGORY_CREATE', entityType: 'category', entityId: id, after: await snapshot(tx, 'category', id) });
   });
   return findCategory(ctx.db, actor.companyId, id);
 }
@@ -69,7 +71,9 @@ export async function updateCategory(
       updated_at: toIso(ctx.clock.now()),
       seq: await nextSeq(ctx, tx),
     });
-    await tx.execute(`UPDATE category SET ${set.sql} WHERE id = ?`, [...set.params, categoryId]);
+    await audited(ctx, tx, actor, { action: 'CATEGORY_UPDATE', entityType: 'category', entityId: categoryId }, () =>
+      tx.execute(`UPDATE category SET ${set.sql} WHERE id = ?`, [...set.params, categoryId]),
+    );
   });
   return findCategory(ctx.db, actor.companyId, categoryId);
 }

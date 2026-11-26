@@ -2,6 +2,7 @@
  * Appareils. L'appairage par QR code arrive en phase 3 ; ici, les règles déjà utiles :
  * révocation par le boss et révocation automatique à la désactivation d'un employé.
  */
+import { audited } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -19,23 +20,26 @@ export async function revokeDevice(ctx: CoreContext, actor: Actor, deviceId: str
   await ctx.db.transaction(async (tx) => {
     const { rows } = await tx.execute('SELECT status FROM device WHERE id = ? AND company_id = ?', [deviceId, actor.companyId]);
     if (!rows[0]) throw new DomainError('NOT_FOUND', 'Appareil introuvable.');
-    if (rows[0].status !== 'REVOKED') await markRevoked(ctx, tx, deviceId);
+    if (rows[0].status !== 'REVOKED') await markRevoked(ctx, tx, deviceId, actor);
   });
   return toDevice((await ctx.db.execute('SELECT * FROM device WHERE id = ?', [deviceId])).rows[0]!);
 }
 
 /** Révoque tous les appareils actifs d'un compte, dans la transaction en cours. */
-export async function revokeDevicesOfUser(ctx: CoreContext, tx: SqlExecutor, userId: string): Promise<void> {
+export async function revokeDevicesOfUser(ctx: CoreContext, tx: SqlExecutor, userId: string, actor: Actor): Promise<void> {
   const { rows } = await tx.execute(`SELECT id FROM device WHERE user_id = ? AND status = 'ACTIVE'`, [userId]);
-  for (const r of rows) await markRevoked(ctx, tx, String(r.id));
+  for (const r of rows) await markRevoked(ctx, tx, String(r.id), actor);
 }
 
-async function markRevoked(ctx: CoreContext, tx: SqlExecutor, deviceId: string) {
-  await tx.execute(`UPDATE device SET status = 'REVOKED', revoked_at = ?, wipe_pending = 1, seq = ? WHERE id = ?`, [
-    toIso(ctx.clock.now()),
-    await nextSeq(ctx, tx),
-    deviceId,
-  ]);
+async function markRevoked(ctx: CoreContext, tx: SqlExecutor, deviceId: string, actor: Actor) {
+  const { rows } = await tx.execute('SELECT user_id FROM device WHERE id = ?', [deviceId]);
+  await audited(ctx, tx, actor, { action: 'DEVICE_REVOKE', entityType: 'device', entityId: deviceId, onBehalfOf: String(rows[0]?.user_id) }, async () =>
+    tx.execute(`UPDATE device SET status = 'REVOKED', revoked_at = ?, wipe_pending = 1, seq = ? WHERE id = ?`, [
+      toIso(ctx.clock.now()),
+      await nextSeq(ctx, tx),
+      deviceId,
+    ]),
+  );
 }
 
 /** Les appareils de l'entreprise, ou d'un seul compte (boss seulement). */

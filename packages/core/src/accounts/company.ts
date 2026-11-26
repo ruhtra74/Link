@@ -2,6 +2,7 @@
  * Entreprise : création au premier lancement (téléphone du boss) et paramètres.
  * Voir docs/specs, « Entreprise et comptes » et « Personnalisation et paramètres ».
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import { DomainError } from '../errors';
 import { requireBoss } from '../shared/permissions';
@@ -45,6 +46,7 @@ export async function setupCompany(ctx: CoreContext, input: SetupCompanyInput): 
   const now = toIso(ctx.clock.now());
   const companyId = ctx.ids.newId();
   const bossId = ctx.ids.newId();
+  const actor: Actor = { userId: bossId, companyId, role: 'BOSS', deviceId: ctx.device.id };
 
   await ctx.db.transaction(async (tx) => {
     const existing = await tx.execute('SELECT id FROM company LIMIT 1');
@@ -77,11 +79,12 @@ export async function setupCompany(ctx: CoreContext, input: SetupCompanyInput): 
       `INSERT INTO device (id, company_id, user_id, label, platform, paired_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [ctx.device.id, companyId, bossId, v.optionalText('label', input.device.label), platform, now, await nextSeq(ctx, tx)],
     );
+    await recordAudit(ctx, tx, actor, { action: 'COMPANY_SETUP', entityType: 'company', entityId: companyId, after: await snapshot(tx, 'company', companyId) });
   });
 
   const company = (await getCompany(ctx))!;
   const boss = toUser((await ctx.db.execute('SELECT * FROM user WHERE id = ?', [bossId])).rows[0]!);
-  return { company, boss, actor: { userId: bossId, companyId, role: 'BOSS', deviceId: ctx.device.id } };
+  return { company, boss, actor };
 }
 
 /** L'entreprise de cette installation, ou `null` avant le premier lancement. */
@@ -124,8 +127,10 @@ export async function updateCompany(ctx: CoreContext, actor: Actor, input: Compa
       updated_at: now,
       seq: await nextSeq(ctx, tx),
     });
-    const { changes } = await tx.execute(`UPDATE company SET ${set.sql} WHERE id = ?`, [...set.params, actor.companyId]);
-    if (changes === 0) throw new DomainError('NOT_FOUND', 'Entreprise introuvable.');
+    await audited(ctx, tx, actor, { action: 'COMPANY_UPDATE', entityType: 'company', entityId: actor.companyId }, async () => {
+      const { changes } = await tx.execute(`UPDATE company SET ${set.sql} WHERE id = ?`, [...set.params, actor.companyId]);
+      if (changes === 0) throw new DomainError('NOT_FOUND', 'Entreprise introuvable.');
+    });
   });
 
   return (await getCompany(ctx))!;

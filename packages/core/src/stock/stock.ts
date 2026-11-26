@@ -12,6 +12,7 @@
  * et part aux employés, qui ne le modifient jamais.
  */
 import { raiseAlert } from '../alerts/alerts';
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { findItem } from '../catalog/items';
 import type { Item } from '../catalog/types';
 import { toIso, type Actor, type CoreContext } from '../context';
@@ -219,11 +220,12 @@ async function insertManualMovement(
   itemId: string,
   movement: { type: 'ENTRY' | 'LOSS' | 'INVENTORY'; delta?: number; counted?: number; occurredAt: string; reason: string | null },
 ) {
+  const id = ctx.ids.newId();
   await tx.execute(
     `INSERT INTO stock_movement (id, company_id, item_id, type, quantity_delta, counted_quantity, occurred_at, user_id, reason, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      ctx.ids.newId(),
+      id,
       actor.companyId,
       itemId,
       movement.type,
@@ -235,6 +237,8 @@ async function insertManualMovement(
       toIso(ctx.clock.now()),
     ],
   );
+  const action = ({ ENTRY: 'STOCK_ENTRY', LOSS: 'STOCK_LOSS', INVENTORY: 'STOCK_INVENTORY' } as const)[movement.type];
+  await recordAudit(ctx, tx, actor, { action, entityType: 'stock_movement', entityId: id, reason: movement.reason, after: await snapshot(tx, 'stock_movement', id) });
   await refreshStock(ctx, tx, itemId);
 }
 
@@ -258,12 +262,14 @@ export async function enableStockTracking(
     const item = await findItem(tx, actor.companyId, itemId);
     if (item.type !== 'PRODUCT') throw new DomainError('VALIDATION', "Un service n'a pas de stock.", { field: 'itemId' });
     if (item.isStockTracked) throw new DomainError('CONFLICT', `Le stock de « ${item.name} » est déjà suivi.`);
-    await tx.execute('UPDATE item SET is_stock_tracked = 1, stock_alert_threshold = ?, updated_at = ?, seq = ? WHERE id = ?', [
-      input.alertThreshold == null ? null : v.integerInRange('alertThreshold', input.alertThreshold, 0, MAX_STOCK_QUANTITY),
-      toIso(ctx.clock.now()),
-      await nextSeq(ctx, tx),
-      itemId,
-    ]);
+    await audited(ctx, tx, actor, { action: 'STOCK_TRACKING_ENABLE', entityType: 'item', entityId: itemId }, async () =>
+      tx.execute('UPDATE item SET is_stock_tracked = 1, stock_alert_threshold = ?, updated_at = ?, seq = ? WHERE id = ?', [
+        input.alertThreshold == null ? null : v.integerInRange('alertThreshold', input.alertThreshold, 0, MAX_STOCK_QUANTITY),
+        toIso(ctx.clock.now()),
+        await nextSeq(ctx, tx),
+        itemId,
+      ]),
+    );
     await insertManualMovement(ctx, tx, actor, itemId, { type: 'INVENTORY', counted: initial, occurredAt: toIso(ctx.clock.now()), reason: 'Quantité de départ' });
   });
   return findItem(ctx.db, actor.companyId, itemId);
@@ -274,7 +280,9 @@ export async function disableStockTracking(ctx: CoreContext, actor: Actor, itemI
   requireStockManager(ctx, actor);
   await ctx.db.transaction(async (tx) => {
     await trackedProduct(tx, actor.companyId, itemId);
-    await tx.execute('UPDATE item SET is_stock_tracked = 0, updated_at = ?, seq = ? WHERE id = ?', [toIso(ctx.clock.now()), await nextSeq(ctx, tx), itemId]);
+    await audited(ctx, tx, actor, { action: 'STOCK_TRACKING_DISABLE', entityType: 'item', entityId: itemId }, async () =>
+      tx.execute('UPDATE item SET is_stock_tracked = 0, updated_at = ?, seq = ? WHERE id = ?', [toIso(ctx.clock.now()), await nextSeq(ctx, tx), itemId]),
+    );
   });
   return findItem(ctx.db, actor.companyId, itemId);
 }
@@ -284,11 +292,13 @@ export async function setStockAlertThreshold(ctx: CoreContext, actor: Actor, ite
   requireStockManager(ctx, actor);
   await ctx.db.transaction(async (tx) => {
     await trackedProduct(tx, actor.companyId, itemId);
-    await tx.execute('UPDATE item SET stock_alert_threshold = ?, updated_at = ? WHERE id = ?', [
-      threshold == null ? null : v.integerInRange('alertThreshold', threshold, 0, MAX_STOCK_QUANTITY),
-      toIso(ctx.clock.now()),
-      itemId,
-    ]);
+    await audited(ctx, tx, actor, { action: 'STOCK_THRESHOLD_UPDATE', entityType: 'item', entityId: itemId }, () =>
+      tx.execute('UPDATE item SET stock_alert_threshold = ?, updated_at = ? WHERE id = ?', [
+        threshold == null ? null : v.integerInRange('alertThreshold', threshold, 0, MAX_STOCK_QUANTITY),
+        toIso(ctx.clock.now()),
+        itemId,
+      ]),
+    );
   });
   return findItem(ctx.db, actor.companyId, itemId);
 }

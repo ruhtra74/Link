@@ -4,6 +4,7 @@
  * les clients créés par un employé partent au boss à la synchronisation.
  * La fusion des doublons est reportée (voir docs/specs, « Éléments mis de côté »).
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { toIso, type Actor, type CoreContext } from '../context';
 import type { SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -33,6 +34,7 @@ export async function createCustomer(ctx: CoreContext, actor: Actor, input: { na
       now,
       now,
     ]);
+    await recordAudit(ctx, tx, actor, { action: 'CUSTOMER_CREATE', entityType: 'customer', entityId: id, after: await snapshot(tx, 'customer', id) });
   });
   return findCustomer(ctx.db, actor.companyId, id);
 }
@@ -53,7 +55,9 @@ export async function updateCustomer(
       updated_at: toIso(ctx.clock.now()),
       seq: (await nextSeq(ctx, tx)) ?? undefined,
     });
-    await tx.execute(`UPDATE customer SET ${set.sql} WHERE id = ?`, [...set.params, id]);
+    await audited(ctx, tx, actor, { action: 'CUSTOMER_UPDATE', entityType: 'customer', entityId: id }, () =>
+      tx.execute(`UPDATE customer SET ${set.sql} WHERE id = ?`, [...set.params, id]),
+    );
   });
   return findCustomer(ctx.db, actor.companyId, id);
 }

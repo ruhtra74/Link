@@ -11,6 +11,7 @@
  * marquée synchronisée, coût d'achat fixé, seq attribué. C'est le même traitement que la réception
  * d'une vente d'employé lors d'une synchro (phase 3).
  */
+import { recordAudit, snapshot } from '../audit/audit';
 import { findCustomer } from '../catalog/customers';
 import { findItem } from '../catalog/items';
 import { findPaymentMethod } from '../catalog/payment-methods';
@@ -300,6 +301,7 @@ export async function createSale(ctx: CoreContext, actor: Actor, input: SaleInpu
     );
     await insertLines(ctx, tx, id, computed);
     if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, id);
+    await recordAudit(ctx, tx, actor, { action: 'SALE_CREATE', entityType: 'sale', entityId: id, onBehalfOf: employeeId, after: await snapshot(tx, 'sale', id) });
   });
   return getSale(ctx, actor, id);
 }
@@ -311,7 +313,7 @@ export interface SaleCorrectionInput {
   customerId?: string | null;
   paymentMethodId?: string | null;
   note?: string | null;
-  /** Motif, obligatoire quand le boss change les articles ou les montants. */
+  /** Motif, obligatoire quand le boss change les articles ou les montants. Inscrit au journal d'audit. */
   reason?: string;
 }
 
@@ -323,6 +325,7 @@ export async function correctSale(ctx: CoreContext, actor: Actor, saleId: string
   await ctx.db.transaction(async (tx) => {
     const row = await findSaleRow(tx, actor.companyId, saleId);
     await assertCanModify(ctx, tx, actor, row);
+    const before = ctx.device.isBoss ? await snapshot(tx, 'sale', saleId) : null;
     const financial = input.lines !== undefined || input.totalAmount !== undefined;
     if (actor.role === 'BOSS' && financial) v.requiredText('reason', input.reason, 500);
 
@@ -361,6 +364,7 @@ export async function correctSale(ctx: CoreContext, actor: Actor, saleId: string
     set('updated_at', toIso(ctx.clock.now()));
     await tx.execute(`UPDATE sale SET ${sets.join(', ')}, version = version + 1 WHERE id = ?`, [...params, saleId]);
     if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, saleId, actor.userId);
+    await recordAudit(ctx, tx, actor, { action: 'SALE_EDIT', entityType: 'sale', entityId: saleId, onBehalfOf: String(row.employee_id), reason: input.reason ?? null, before, after: await snapshot(tx, 'sale', saleId) });
   });
   return getSale(ctx, actor, saleId);
 }
@@ -372,12 +376,14 @@ export async function cancelSale(ctx: CoreContext, actor: Actor, saleId: string,
     const row = await findSaleRow(tx, actor.companyId, saleId);
     if (row.status === 'CANCELLED') throw new DomainError('CONFLICT', 'Cette vente est déjà annulée.');
     await assertCanModify(ctx, tx, actor, row);
+    const before = ctx.device.isBoss ? await snapshot(tx, 'sale', saleId) : null;
     const now = toIso(ctx.clock.now());
     await tx.execute(
       `UPDATE sale SET status = 'CANCELLED', cancel_reason = ?, cancelled_by = ?, cancelled_at = ?, updated_at = ?, version = version + 1 WHERE id = ?`,
       [motive, actor.userId, now, now, saleId],
     );
     if (ctx.device.isBoss) await finalizeSaleOnBoss(ctx, tx, saleId, actor.userId);
+    await recordAudit(ctx, tx, actor, { action: 'SALE_CANCEL', entityType: 'sale', entityId: saleId, onBehalfOf: String(row.employee_id), reason: motive, before, after: await snapshot(tx, 'sale', saleId) });
   });
   return getSale(ctx, actor, saleId);
 }

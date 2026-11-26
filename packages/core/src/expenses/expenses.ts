@@ -6,6 +6,7 @@
  * - Modifiables et annulables (avec un motif) par le boss, sauf dans un exercice clos.
  * - Déduites dans le calcul du bénéfice.
  */
+import { audited, recordAudit, snapshot } from '../audit/audit';
 import { localDate, toIso, type Actor, type CoreContext } from '../context';
 import type { Row, SqlExecutor } from '../db/types';
 import { DomainError } from '../errors';
@@ -103,6 +104,7 @@ export async function createExpense(ctx: CoreContext, actor: Actor, input: Expen
         now,
       ],
     );
+    await recordAudit(ctx, tx, actor, { action: 'EXPENSE_CREATE', entityType: 'expense', entityId: id, after: await snapshot(tx, 'expense', id) });
   });
   return getExpense(ctx, actor, id);
 }
@@ -119,7 +121,9 @@ export async function updateExpense(ctx: CoreContext, actor: Actor, id: string, 
       expense_date: input.expenseDate !== undefined ? validDate(ctx, input.expenseDate) : undefined,
       updated_at: toIso(ctx.clock.now()),
     });
-    await tx.execute(`UPDATE expense SET ${set.sql} WHERE id = ?`, [...set.params, id]);
+    await audited(ctx, tx, actor, { action: 'EXPENSE_EDIT', entityType: 'expense', entityId: id }, () =>
+      tx.execute(`UPDATE expense SET ${set.sql} WHERE id = ?`, [...set.params, id]),
+    );
   });
   return getExpense(ctx, actor, id);
 }
@@ -130,11 +134,9 @@ export async function cancelExpense(ctx: CoreContext, actor: Actor, id: string, 
   const motive = v.requiredText('reason', reason, 500);
   await ctx.db.transaction(async (tx) => {
     await assertModifiable(tx, await findExpenseRow(tx, actor.companyId, id));
-    await tx.execute(`UPDATE expense SET status = 'CANCELLED', cancel_reason = ?, updated_at = ? WHERE id = ?`, [
-      motive,
-      toIso(ctx.clock.now()),
-      id,
-    ]);
+    await audited(ctx, tx, actor, { action: 'EXPENSE_CANCEL', entityType: 'expense', entityId: id, reason: motive }, () =>
+      tx.execute(`UPDATE expense SET status = 'CANCELLED', cancel_reason = ?, updated_at = ? WHERE id = ?`, [motive, toIso(ctx.clock.now()), id]),
+    );
   });
   return getExpense(ctx, actor, id);
 }
