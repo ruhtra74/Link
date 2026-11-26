@@ -125,6 +125,25 @@ export {
   type BurstTemplateLine,
 } from './burst/burst';
 
+// Indicateurs (tableau de bord, récapitulatif)
+export { previousPeriod, resolvePeriod, type PeriodInput, type PeriodPreset, type ResolvedPeriod } from './analytics/periods';
+export {
+  getDiscountReport,
+  getEmployeeActivity,
+  getItemPerformance,
+  getMySalesSummary,
+  getRevenueSummary,
+  type CategorySales,
+  type DashboardScope,
+  type DiscountReport,
+  type EmployeeActivity,
+  type ItemPerformance,
+  type ItemSales,
+  type PeriodTotals,
+  type RevenueFigures,
+  type RevenueSummary,
+} from './analytics/dashboard';
+
 // Dépenses
 export {
   cancelExpense,
