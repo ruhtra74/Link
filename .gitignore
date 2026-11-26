@@ -32,3 +32,6 @@ apps/mobile/ios/
 .DS_Store
 .idea/
 .opencode
+
+# Maquettes décompressées (le zip docs/maquettes/stitch_link_mobile_app.zip fait foi)
+docs/maquettes/stitch_link_mobile_app/
