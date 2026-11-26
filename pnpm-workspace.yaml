@@ -1,3 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Paquets autorisés à exécuter un script d'installation (pnpm les bloque par défaut).
+# react-native-libsodium : décompresse la libsodium précompilée livrée dans le paquet.
+allowBuilds:
+  react-native-libsodium: true

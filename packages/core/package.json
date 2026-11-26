@@ -1,0 +1,19 @@
+{
+  "name": "@link/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Règles métier et protocole de synchronisation de Link, en TypeScript pur (sans React Native).",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
