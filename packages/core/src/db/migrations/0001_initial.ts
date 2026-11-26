@@ -257,7 +257,8 @@ export const migration0001: Migration = {
       template_id TEXT NOT NULL REFERENCES burst_template (id) ON DELETE CASCADE ${FK},
       item_id TEXT NOT NULL REFERENCES item (id) ${FK},
       quantity INTEGER NOT NULL CHECK (quantity > 0),
-      unit_price INTEGER NOT NULL CHECK (unit_price >= 0)
+      -- NULL : prix de référence actuel du catalogue au moment du clic ; sinon prix fixé dans le modèle.
+      unit_price INTEGER CHECK (unit_price IS NULL OR unit_price >= 0)
     )`,
 
     // ---------- DÉPENSES (BOSS) ----------

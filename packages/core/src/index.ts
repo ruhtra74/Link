@@ -110,6 +110,21 @@ export {
 } from './stock/stock';
 export { listAlerts, markAlertRead, type Alert, type AlertType } from './alerts/alerts';
 
+// Mode rafale
+export {
+  createBurstTemplate,
+  deleteBurstTemplate,
+  getBurstTemplate,
+  listBurstTemplates,
+  recordBurstSale,
+  undoLastBurstSale,
+  updateBurstTemplate,
+  UNDO_BURST_REASON,
+  type BurstTemplate,
+  type BurstTemplateInput,
+  type BurstTemplateLine,
+} from './burst/burst';
+
 // Dépenses
 export {
   cancelExpense,
